@@ -581,9 +581,9 @@ export default function AdminPanel() {
   };
 
   const handleAdvancePhase = () => {
-    if (!currentEvent || !phases.data) return;
+    if (!currentEvent || !phases) return;
 
-    const currentPhases = phases.data;
+    const currentPhases = phases;
 
     // Check if there are no phases at all
     if (currentPhases.length === 0) {
