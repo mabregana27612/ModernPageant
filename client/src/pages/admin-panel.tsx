@@ -330,37 +330,6 @@ export default function AdminPanel() {
     },
   });
 
-  const deleteEventMutation = useMutation({
-    mutationFn: async (eventId: string) => {
-      await apiRequest('DELETE', `/api/events/${eventId}`);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Event deleted successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to delete event.",
-        variant: "destructive",
-      });
-    },
-  });
-
   const updateSubCriteriaMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       await apiRequest('PATCH', `/api/sub-criteria/${id}`, data);
@@ -545,37 +514,6 @@ export default function AdminPanel() {
       toast({
         title: "Error",
         description: "Failed to advance phase.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const deleteEventMutation = useMutation({
-    mutationFn: async (eventId: string) => {
-      await apiRequest('DELETE', `/api/events/${eventId}`);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Event deleted successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to delete event.",
         variant: "destructive",
       });
     },
