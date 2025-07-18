@@ -351,7 +351,7 @@ export default function AdminPanel() {
           <CardContent className="p-8 text-center">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Events Found</h3>
             <p className="text-gray-600 mb-4">Create your first event to get started.</p>
-            <Button>
+            <Button onClick={() => setShowEventForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Event
             </Button>
@@ -371,7 +371,7 @@ export default function AdminPanel() {
               <h1 className="text-3xl font-playfair font-bold text-gray-900 mb-2">Admin Panel</h1>
               <p className="text-gray-600">Manage events, contestants, and scoring criteria</p>
             </div>
-            <Button>
+            <Button onClick={() => setShowEventForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create New Event
             </Button>
@@ -442,7 +442,12 @@ export default function AdminPanel() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Button size="sm" variant="ghost">
+                        <Button size="sm" variant="ghost" onClick={() => {
+                          toast({
+                            title: "Feature Coming Soon",
+                            description: "Inline criteria editing will be available soon.",
+                          });
+                        }}>
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button 
@@ -504,7 +509,10 @@ export default function AdminPanel() {
                             checked={phase.resetScores}
                             className="rounded border-gray-300 text-primary focus:ring-primary/20"
                             onChange={(e) => {
-                              // Update phase reset scores
+                              toast({
+                                title: "Feature Coming Soon",
+                                description: "Phase configuration will be available soon.",
+                              });
                             }}
                           />
                           <span className="text-sm text-gray-600">Reset scores after phase</span>
@@ -516,11 +524,21 @@ export default function AdminPanel() {
                 
                 {/* Phase Actions */}
                 <div className="mt-6 flex space-x-4">
-                  <Button>
+                  <Button onClick={() => {
+                    toast({
+                      title: "Feature Coming Soon",
+                      description: "Phase advancement will be available soon.",
+                    });
+                  }}>
                     <Play className="h-4 w-4 mr-2" />
                     Advance to Next Phase
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={() => {
+                    toast({
+                      title: "Feature Coming Soon",
+                      description: "Phase reset will be available soon.",
+                    });
+                  }}>
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Reset Current Phase
                   </Button>
@@ -556,10 +574,20 @@ export default function AdminPanel() {
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => {
+                          toast({
+                            title: "Feature Coming Soon",
+                            description: "Event editing will be available soon.",
+                          });
+                        }}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => {
+                          toast({
+                            title: "Feature Coming Soon",
+                            description: "Event deletion will be available soon.",
+                          });
+                        }}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -601,10 +629,20 @@ export default function AdminPanel() {
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => {
+                          toast({
+                            title: "Feature Coming Soon",
+                            description: "Contestant editing will be available soon.",
+                          });
+                        }}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => {
+                          toast({
+                            title: "Feature Coming Soon",
+                            description: "Contestant deletion will be available soon.",
+                          });
+                        }}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -640,10 +678,20 @@ export default function AdminPanel() {
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => {
+                          toast({
+                            title: "Feature Coming Soon",
+                            description: "Judge editing will be available soon.",
+                          });
+                        }}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => {
+                          toast({
+                            title: "Feature Coming Soon",
+                            description: "Judge deletion will be available soon.",
+                          });
+                        }}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
