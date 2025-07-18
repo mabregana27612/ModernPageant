@@ -11,6 +11,7 @@ import JudgeDashboard from "@/pages/judge-dashboard";
 import AdminPanel from "@/pages/admin-panel";
 import Results from "@/pages/results";
 import ContestantsPage from "@/pages/contestants";
+import ContestsPage from "@/pages/contests";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -34,6 +35,7 @@ function Router() {
           <>
             <Route path="/" component={Home} />
             <Route path="/contestants" component={ContestantsPage} />
+            <Route path="/contests" component={ContestsPage} />
             <Route path="/judge" component={JudgeDashboard} />
             <Route path="/admin" component={AdminPanel} />
             <Route path="/results" component={Results} />
