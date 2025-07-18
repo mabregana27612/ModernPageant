@@ -11,7 +11,6 @@ export default function Navigation() {
   const navItems = [
     { href: "/", label: "Home", active: location === "/" },
     { href: "/contestants", label: "Contestants", active: location === "/contestants" },
-    { href: "/contests", label: "Contests", active: location === "/contests" },
     { href: "/judge", label: "Dashboard", active: location === "/judge" },
     { href: "/results", label: "Results", active: location === "/results" },
   ];
