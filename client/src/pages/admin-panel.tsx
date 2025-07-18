@@ -1,3 +1,4 @@
+typescript
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -420,15 +421,16 @@ export default function AdminPanel() {
 
   const advancePhaseMutation = useMutation({
     mutationFn: async (eventId: string) => {
-      return await apiRequest('POST', `/api/events/${eventId}/advance-phase`, {});
+      const response = await apiRequest('POST', `/api/events/${eventId}/advance-phase`);
+      return response;
     },
     onSuccess: (data) => {
       toast({
-        title: "Phase Advanced",
+        title: "Success",
         description: data.message,
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'phases'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -445,6 +447,37 @@ export default function AdminPanel() {
       toast({
         title: "Error",
         description: "Failed to advance phase.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      await apiRequest('DELETE', `/api/events/${eventId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Event deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete event.",
         variant: "destructive",
       });
     },
@@ -882,7 +915,8 @@ export default function AdminPanel() {
                         <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
                           <span className="text-sm font-medium">J</span>
                         </div>
-                        <div>
+                        ```tool_code
+<div>
                           <h3 className="font-semibold">{judge.userId}</h3>
                           <p className="text-sm text-gray-600">{judge.specialization}</p>
                         </div>

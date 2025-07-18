@@ -254,7 +254,7 @@ async function seedComprehensiveData() {
       { criteriaId: createdCriteria[3].id, name: "Overall Impression", description: "Complete presentation", weight: 10, maxScore: 10 },
     ];
 
-    const createdSubCriteria = await db.insert(subCriteria).values(subCriteriaData).returning();
+    await db.insert(subCriteria).values(subCriteriaData).returning();
 
     // Create realistic scoring data for finals phase
     const scoreData = [];
