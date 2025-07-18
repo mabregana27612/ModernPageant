@@ -10,7 +10,7 @@ import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import type { Event, Contestant, ScoringCriteria, User } from "@shared/schema";
+import type { Event, Contestant, ScoringCriteria, User, SubCriteria } from "@shared/schema";
 
 export default function JudgeDashboard() {
   const { user } = useAuth();
@@ -18,6 +18,8 @@ export default function JudgeDashboard() {
   const queryClient = useQueryClient();
   const [selectedEvent, setSelectedEvent] = useState<string>("");
   const [scores, setScores] = useState<Record<string, number>>({});
+  const [currentContestantIndex, setCurrentContestantIndex] = useState(0);
+  const [currentCriteriaIndex, setCurrentCriteriaIndex] = useState(0);
 
   const { data: events } = useQuery<Event[]>({
     queryKey: ['/api/events'],
@@ -31,6 +33,13 @@ export default function JudgeDashboard() {
   const { data: criteria } = useQuery<ScoringCriteria[]>({
     queryKey: ['/api/events', selectedEvent, 'criteria'],
     enabled: !!selectedEvent,
+  });
+
+  const currentCriteria = criteria?.[currentCriteriaIndex];
+  
+  const { data: subCriteria } = useQuery<SubCriteria[]>({
+    queryKey: ['/api/criteria', currentCriteria?.id, 'sub-criteria'],
+    enabled: !!currentCriteria?.id,
   });
 
   const scoreMutation = useMutation({
@@ -84,6 +93,30 @@ export default function JudgeDashboard() {
       phaseId: "current-phase-id", // This should come from the event's current phase
       score,
     });
+  };
+
+  const handleNextContestant = () => {
+    if (contestants && currentContestantIndex < contestants.length - 1) {
+      setCurrentContestantIndex(prev => prev + 1);
+    }
+  };
+
+  const handlePrevContestant = () => {
+    if (currentContestantIndex > 0) {
+      setCurrentContestantIndex(prev => prev - 1);
+    }
+  };
+
+  const handleNextCriteria = () => {
+    if (criteria && currentCriteriaIndex < criteria.length - 1) {
+      setCurrentCriteriaIndex(prev => prev + 1);
+    }
+  };
+
+  const handlePrevCriteria = () => {
+    if (currentCriteriaIndex > 0) {
+      setCurrentCriteriaIndex(prev => prev - 1);
+    }
   };
 
   const activeEvent = events?.find(e => e.status === 'active');
@@ -145,81 +178,139 @@ export default function JudgeDashboard() {
           </CardContent>
         </Card>
 
-        {/* Contestants Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {contestants?.map((contestant) => (
-            <Card key={contestant.id} className="hover:shadow-md transition-shadow">
-              <div className="relative">
-                <img 
-                  src={contestant.photoUrl || 'https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300'} 
-                  alt={`${contestant.user.firstName} ${contestant.user.lastName}`}
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
-                  #{contestant.contestantNumber}
-                </div>
-                <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  <CheckCircle className="h-4 w-4" />
-                </div>
+        {/* Sequential Scoring Interface */}
+        {contestants && contestants.length > 0 && criteria && criteria.length > 0 && (
+          <div className="space-y-6">
+            {/* Navigation */}
+            <div className="flex justify-between items-center">
+              <div className="flex space-x-4">
+                <Button 
+                  variant="outline" 
+                  onClick={handlePrevContestant}
+                  disabled={currentContestantIndex === 0}
+                >
+                  Previous Contestant
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleNextContestant}
+                  disabled={currentContestantIndex === contestants.length - 1}
+                >
+                  Next Contestant
+                </Button>
               </div>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {contestant.user.firstName} {contestant.user.lastName}
-                </h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  Age: {contestant.age} • {contestant.location} • {contestant.occupation}
-                </p>
-                
-                {/* Score Inputs */}
-                <div className="space-y-3">
-                  {criteria?.map((criterion) => {
-                    const scoreKey = `${contestant.id}-${criterion.id}`;
-                    return (
-                      <div key={criterion.id} className="flex items-center justify-between">
-                        <Label htmlFor={scoreKey} className="text-sm font-medium text-gray-700">
-                          {criterion.name}
-                        </Label>
-                        <div className="flex items-center space-x-2">
-                          <Input
-                            id={scoreKey}
-                            type="number"
-                            min="1"
-                            max="10"
-                            value={scores[scoreKey] || ''}
-                            onChange={(e) => setScores(prev => ({
-                              ...prev,
-                              [scoreKey]: parseInt(e.target.value) || 0
-                            }))}
-                            className="w-16 text-center"
-                          />
-                          <span className="text-sm text-gray-500">/10</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+              <div className="flex space-x-4">
+                <Button 
+                  variant="outline" 
+                  onClick={handlePrevCriteria}
+                  disabled={currentCriteriaIndex === 0}
+                >
+                  Previous Criteria
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleNextCriteria}
+                  disabled={currentCriteriaIndex === criteria.length - 1}
+                >
+                  Next Criteria
+                </Button>
+              </div>
+            </div>
+
+            {/* Current Contestant & Criteria */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Contestant Card */}
+              <Card>
+                <div className="relative">
+                  <img 
+                    src={contestants[currentContestantIndex].photoUrl || 'https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300'} 
+                    alt={`${contestants[currentContestantIndex].user.firstName} ${contestants[currentContestantIndex].user.lastName}`}
+                    className="w-full h-64 object-cover rounded-t-lg"
+                  />
+                  <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
+                    #{contestants[currentContestantIndex].contestantNumber}
+                  </div>
                 </div>
-                
-                <div className="mt-4 space-y-2">
-                  {criteria?.map((criterion) => (
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    {contestants[currentContestantIndex].user.firstName} {contestants[currentContestantIndex].user.lastName}
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Age: {contestants[currentContestantIndex].age} • {contestants[currentContestantIndex].location} • {contestants[currentContestantIndex].occupation}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Contestant {currentContestantIndex + 1} of {contestants.length}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Scoring Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>{currentCriteria?.name}</span>
+                    <Badge>{currentCriteria?.weight}%</Badge>
+                  </CardTitle>
+                  <p className="text-gray-600">{currentCriteria?.description}</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Sub-criteria if available */}
+                  {subCriteria && subCriteria.length > 0 && (
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2">Sub-criteria breakdown:</h4>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        {subCriteria.map((sub) => (
+                          <div key={sub.id} className="flex justify-between">
+                            <span>• {sub.name}</span>
+                            <span>{sub.weight}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Score Input */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-4">
+                      <Label className="text-lg font-medium">Score:</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={scores[`${contestants[currentContestantIndex].id}-${currentCriteria?.id}`] || ''}
+                        onChange={(e) => setScores(prev => ({
+                          ...prev,
+                          [`${contestants[currentContestantIndex].id}-${currentCriteria?.id}`]: parseInt(e.target.value) || 0
+                        }))}
+                        className="w-24 text-center text-lg"
+                        placeholder="1-10"
+                      />
+                      <span className="text-lg text-gray-500">/10</span>
+                    </div>
+                    
                     <Button
-                      key={criterion.id}
-                      onClick={() => handleScoreSubmit(contestant.id, criterion.id)}
+                      onClick={() => handleScoreSubmit(contestants[currentContestantIndex].id, currentCriteria?.id || '')}
                       className="w-full"
                       disabled={scoreMutation.isPending}
+                      size="lg"
                     >
                       {scoreMutation.isPending ? (
                         <Clock className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
                         <CheckCircle className="h-4 w-4 mr-2" />
                       )}
-                      Submit {criterion.name} Score
+                      Submit Score for {currentCriteria?.name}
                     </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  </div>
+
+                  <p className="text-sm text-gray-500 text-center">
+                    Criteria {currentCriteriaIndex + 1} of {criteria.length}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="mt-8 flex flex-wrap gap-4 justify-center">
