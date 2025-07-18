@@ -38,6 +38,14 @@ export default function AdminPanel() {
     weight: '',
     maxScore: '10'
   });
+  const [showPhaseForm, setShowPhaseForm] = useState(false);
+  const [editingPhase, setEditingPhase] = useState<Phase | null>(null);
+  const [phaseForm, setPhaseForm] = useState({
+    name: '',
+    description: '',
+    order: '',
+    resetScores: false
+  });
 
   // Sub-criteria queries
   const { data: subCriteriaData } = useQuery({
@@ -550,6 +558,135 @@ export default function AdminPanel() {
     },
   });
 
+  const createPhaseMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await apiRequest('POST', `/api/events/${currentEventId}/phases`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Phase created",
+        description: "Phase has been created successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'phases'] });
+      setShowPhaseForm(false);
+      setPhaseForm({ name: '', description: '', order: '', resetScores: false });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to create phase.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePhaseMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      await apiRequest('PATCH', `/api/phases/${id}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Phase updated",
+        description: "Phase has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'phases'] });
+      setEditingPhase(null);
+      setShowPhaseForm(false);
+      setPhaseForm({ name: '', description: '', order: '', resetScores: false });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update phase.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deletePhaseMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest('DELETE', `/api/phases/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Phase deleted",
+        description: "Phase has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'phases'] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete phase.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const reorderPhasesMutation = useMutation({
+    mutationFn: async (phaseOrders: { id: string; order: number }[]) => {
+      await apiRequest('POST', `/api/events/${currentEventId}/phases/reorder`, { phaseOrders });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Phases reordered",
+        description: "Phases have been reordered successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'phases'] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to reorder phases.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleAddScoringCriteria = async (data: any) => {
     if (!currentEventId) return;
 
@@ -622,6 +759,56 @@ export default function AdminPanel() {
     // Regular phase advancement
     if (confirm(`Advance from "${activePhase.name}" to "${nextPhase.name}"?`)) {
       advancePhaseMutation.mutate(currentEventId);
+    }
+  };
+
+  const handleCreatePhase = () => {
+    if (!currentEventId) return;
+    
+    const nextOrder = phases && phases.length > 0 ? Math.max(...phases.map(p => p.order)) + 1 : 1;
+    setPhaseForm({ ...phaseForm, order: nextOrder.toString() });
+    setEditingPhase(null);
+    setShowPhaseForm(true);
+  };
+
+  const handleEditPhase = (phase: Phase) => {
+    setEditingPhase(phase);
+    setPhaseForm({
+      name: phase.name,
+      description: phase.description || '',
+      order: phase.order.toString(),
+      resetScores: phase.resetScores
+    });
+    setShowPhaseForm(true);
+  };
+
+  const handleDeletePhase = (phase: Phase) => {
+    if (confirm(`Are you sure you want to delete "${phase.name}"? This will also delete all associated scores.`)) {
+      deletePhaseMutation.mutate(phase.id);
+    }
+  };
+
+  const handleMovePhase = (phaseId: string, direction: 'up' | 'down') => {
+    if (!phases) return;
+    
+    const currentPhase = phases.find(p => p.id === phaseId);
+    if (!currentPhase) return;
+    
+    const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
+    const currentIndex = sortedPhases.findIndex(p => p.id === phaseId);
+    
+    if (direction === 'up' && currentIndex > 0) {
+      const phaseOrders = [
+        { id: sortedPhases[currentIndex].id, order: sortedPhases[currentIndex - 1].order },
+        { id: sortedPhases[currentIndex - 1].id, order: sortedPhases[currentIndex].order }
+      ];
+      reorderPhasesMutation.mutate(phaseOrders);
+    } else if (direction === 'down' && currentIndex < sortedPhases.length - 1) {
+      const phaseOrders = [
+        { id: sortedPhases[currentIndex].id, order: sortedPhases[currentIndex + 1].order },
+        { id: sortedPhases[currentIndex + 1].id, order: sortedPhases[currentIndex].order }
+      ];
+      reorderPhasesMutation.mutate(phaseOrders);
     }
   };
 
@@ -1095,14 +1282,24 @@ export default function AdminPanel() {
           <TabsContent value="phases">
             <Card>
               <CardHeader>
-                <CardTitle>Phase Management</CardTitle>
-                <p className="text-gray-600">Manage competition phases and progression</p>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Phase Management</CardTitle>
+                    <p className="text-gray-600">Manage competition phases and progression</p>
+                  </div>
+                  <Button onClick={handleCreatePhase} disabled={!currentEventId}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Phase
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {phases && phases.length > 0 ? (
-                    phases.map((phase) => (
-                      <div key={phase.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    phases.sort((a, b) => a.order - b.order).map((phase, index) => (
+                      <div key={phase.id} className={`flex items-center justify-between p-4 rounded-lg border ${
+                        phase.status === 'active' ? 'bg-primary/5 border-primary/20' : 'bg-gray-50'
+                      }`}>
                         <div className="flex items-center space-x-4">
                           <div className="flex items-center space-x-2">
                             {phase.status === 'active' ? (
@@ -1112,7 +1309,12 @@ export default function AdminPanel() {
                             ) : (
                               <Pause className="h-5 w-5 text-gray-400" />
                             )}
-                            <span className="font-medium">{phase.name}</span>
+                            <div>
+                              <span className="font-medium">{phase.name}</span>
+                              {phase.description && (
+                                <p className="text-sm text-gray-600">{phase.description}</p>
+                              )}
+                            </div>
                           </div>
                           <Badge variant={phase.status === 'active' ? 'default' : 'secondary'}>
                             {phase.status}
@@ -1127,8 +1329,41 @@ export default function AdminPanel() {
                               className="rounded border-gray-300 text-primary focus:ring-primary/20"
                               disabled
                             />
-                            <span className="text-sm text-gray-600">Reset scores after phase</span>
+                            <span className="text-sm text-gray-600">Reset scores</span>
                           </label>
+                          <div className="flex items-center space-x-1 ml-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleMovePhase(phase.id, 'up')}
+                              disabled={index === 0 || reorderPhasesMutation.isPending}
+                            >
+                              ↑
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleMovePhase(phase.id, 'down')}
+                              disabled={index === phases.length - 1 || reorderPhasesMutation.isPending}
+                            >
+                              ↓
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditPhase(phase)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeletePhase(phase)}
+                              disabled={deletePhaseMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))
@@ -1139,15 +1374,11 @@ export default function AdminPanel() {
                       <p className="text-sm">This event doesn't have any phases configured yet.</p>
                       <Button 
                         className="mt-4"
-                        onClick={() => {
-                          toast({
-                            title: "Creating Default Phases",
-                            description: "Adding default phases for this event...",
-                          });
-                          // You could add an API call here to create default phases
-                        }}
+                        onClick={handleCreatePhase}
+                        disabled={!currentEventId}
                       >
-                        Create Default Phases
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create First Phase
                       </Button>
                     </div>
                   )}
@@ -1554,6 +1785,98 @@ export default function AdminPanel() {
                       {createSubCriteriaMutation.isPending ? 'Creating...' : 'Create Sub-Criteria'}
                     </Button>
                     <Button variant="outline" onClick={() => setShowSubCriteriaForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Create/Edit Phase Form Modal */}
+        {showPhaseForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle>{editingPhase ? 'Edit Phase' : 'Create New Phase'}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="phase-name">Phase Name</Label>
+                    <Input
+                      id="phase-name"
+                      value={phaseForm.name}
+                      onChange={(e) => setPhaseForm({ ...phaseForm, name: e.target.value })}
+                      placeholder="e.g., Preliminaries, Semi-Finals, Finals"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phase-description">Description</Label>
+                    <Textarea
+                      id="phase-description"
+                      value={phaseForm.description}
+                      onChange={(e) => setPhaseForm({ ...phaseForm, description: e.target.value })}
+                      placeholder="e.g., Initial judging round with all contestants"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phase-order">Order</Label>
+                    <Input
+                      id="phase-order"
+                      type="number"
+                      value={phaseForm.order}
+                      onChange={(e) => setPhaseForm({ ...phaseForm, order: e.target.value })}
+                      placeholder="1"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="phase-reset-scores"
+                      checked={phaseForm.resetScores}
+                      onChange={(e) => setPhaseForm({ ...phaseForm, resetScores: e.target.checked })}
+                      className="rounded border-gray-300 text-primary focus:ring-primary/20"
+                    />
+                    <Label htmlFor="phase-reset-scores">Reset scores when entering this phase</Label>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button 
+                      onClick={() => {
+                        if (editingPhase) {
+                          updatePhaseMutation.mutate({
+                            id: editingPhase.id,
+                            data: {
+                              name: phaseForm.name,
+                              description: phaseForm.description,
+                              order: parseInt(phaseForm.order),
+                              resetScores: phaseForm.resetScores
+                            }
+                          });
+                        } else {
+                          createPhaseMutation.mutate({
+                            name: phaseForm.name,
+                            description: phaseForm.description,
+                            order: parseInt(phaseForm.order),
+                            resetScores: phaseForm.resetScores,
+                            status: 'pending'
+                          });
+                        }
+                      }}
+                      disabled={createPhaseMutation.isPending || updatePhaseMutation.isPending}
+                    >
+                      {(createPhaseMutation.isPending || updatePhaseMutation.isPending) 
+                        ? (editingPhase ? 'Updating...' : 'Creating...') 
+                        : (editingPhase ? 'Update Phase' : 'Create Phase')
+                      }
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      setShowPhaseForm(false);
+                      setEditingPhase(null);
+                      setPhaseForm({ name: '', description: '', order: '', resetScores: false });
+                    }}>
                       Cancel
                     </Button>
                   </div>

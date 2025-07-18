@@ -230,6 +230,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/phases/:id', async (req, res) => {
+    try {
+      const phase = await storage.getPhase(req.params.id);
+      if (!phase) {
+        return res.status(404).json({ message: "Phase not found" });
+      }
+      res.json(phase);
+    } catch (error) {
+      console.error("Error fetching phase:", error);
+      res.status(500).json({ message: "Failed to fetch phase" });
+    }
+  });
+
   app.post('/api/events/:eventId/phases', isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertPhaseSchema.parse({
@@ -240,11 +253,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(phase);
     } catch (error) {
       console.error("Error creating phase:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.issues.map(issue => ({
+            field: issue.path.join('.'),
+            message: issue.message
+          }))
+        });
+      }
       res.status(500).json({ message: "Failed to create phase" });
     }
   });
 
-  app.patch('/api/events/:eventId/phases/:id', isAuthenticated, async (req, res) => {
+  app.patch('/api/phases/:id', isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertPhaseSchema.partial().parse(req.body);
       const phase = await storage.updatePhase(req.params.id, validatedData);
@@ -252,6 +274,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating phase:", error);
       res.status(500).json({ message: "Failed to update phase" });
+    }
+  });
+
+  app.delete('/api/phases/:id', isAuthenticated, async (req, res) => {
+    try {
+      await storage.deletePhase(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting phase:", error);
+      res.status(500).json({ message: "Failed to delete phase" });
+    }
+  });
+
+  app.post('/api/events/:eventId/phases/reorder', isAuthenticated, async (req, res) => {
+    try {
+      const { phaseOrders } = req.body;
+      await storage.reorderPhases(req.params.eventId, phaseOrders);
+      res.json({ message: "Phases reordered successfully" });
+    } catch (error) {
+      console.error("Error reordering phases:", error);
+      res.status(500).json({ message: "Failed to reorder phases" });
     }
   });
 

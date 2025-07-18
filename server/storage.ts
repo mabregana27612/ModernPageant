@@ -247,6 +247,11 @@ export class DatabaseStorage implements IStorage {
       .orderBy(phases.order);
   }
 
+  async getPhase(id: string): Promise<Phase | undefined> {
+    const [phase] = await db.select().from(phases).where(eq(phases.id, id));
+    return phase;
+  }
+
   async createPhase(phase: InsertPhase): Promise<Phase> {
     const [created] = await db.insert(phases).values(phase).returning();
     return created;
@@ -259,6 +264,23 @@ export class DatabaseStorage implements IStorage {
       .where(eq(phases.id, id))
       .returning();
     return updated;
+  }
+
+  async deletePhase(id: string): Promise<void> {
+    // First delete all scores associated with this phase
+    await db.delete(scores).where(eq(scores.phaseId, id));
+    // Then delete the phase
+    await db.delete(phases).where(eq(phases.id, id));
+  }
+
+  async reorderPhases(eventId: string, phaseOrders: { id: string; order: number }[]): Promise<void> {
+    // Update phases order in a transaction
+    for (const phaseOrder of phaseOrders) {
+      await db
+        .update(phases)
+        .set({ order: phaseOrder.order })
+        .where(eq(phases.id, phaseOrder.id));
+    }
   }
 
   async advancePhase(eventId: string): Promise<{ message: string; newPhase?: Phase }> {
