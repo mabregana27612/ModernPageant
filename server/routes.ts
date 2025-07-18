@@ -63,6 +63,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(event);
     } catch (error) {
       console.error("Error creating event:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.issues.map(issue => ({
+            field: issue.path.join('.'),
+            message: issue.message
+          }))
+        });
+      }
       res.status(500).json({ message: "Failed to create event" });
     }
   });
@@ -99,6 +108,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(contestant);
     } catch (error) {
       console.error("Error creating contestant:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.issues.map(issue => ({
+            field: issue.path.join('.'),
+            message: issue.message
+          }))
+        });
+      }
       res.status(500).json({ message: "Failed to create contestant" });
     }
   });
@@ -124,6 +142,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(judge);
     } catch (error) {
       console.error("Error creating judge:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.issues.map(issue => ({
+            field: issue.path.join('.'),
+            message: issue.message
+          }))
+        });
+      }
       res.status(500).json({ message: "Failed to create judge" });
     }
   });
@@ -149,6 +176,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(criteria);
     } catch (error) {
       console.error("Error creating criteria:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.issues.map(issue => ({
+            field: issue.path.join('.'),
+            message: issue.message
+          }))
+        });
+      }
       res.status(500).json({ message: "Failed to create criteria" });
     }
   });

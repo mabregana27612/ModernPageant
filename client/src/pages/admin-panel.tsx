@@ -127,9 +127,18 @@ export default function AdminPanel() {
         }, 500);
         return;
       }
+      
+      // Try to parse error details for better feedback
+      let errorMessage = "Failed to create event. Please try again.";
+      if (error.message.includes("Validation error")) {
+        errorMessage = "Please check your input data and try again.";
+      } else if (error.message.includes("date")) {
+        errorMessage = "Please check the date format and try again.";
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to create event. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },

@@ -154,7 +154,10 @@ export const scoresRelations = relations(scores, ({ one }) => ({
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users);
-export const insertEventSchema = createInsertSchema(events);
+export const insertEventSchema = createInsertSchema(events).extend({
+  startDate: z.string().transform((str) => new Date(str)),
+  endDate: z.string().optional().transform((str) => str ? new Date(str) : undefined),
+});
 export const insertContestantSchema = createInsertSchema(contestants);
 export const insertJudgeSchema = createInsertSchema(judges);
 export const insertScoringCriteriaSchema = createInsertSchema(scoringCriteria);
