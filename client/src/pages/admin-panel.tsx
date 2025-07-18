@@ -581,28 +581,41 @@ export default function AdminPanel() {
   };
 
   const handleAdvancePhase = () => {
-    if (!currentEventId) return;
+    if (!currentEvent || !phases.data) return;
 
-    const currentPhase = phases?.find(p => p.status === 'active');
-    const currentIndex = phases?.findIndex(p => p.status === 'active') ?? -1;
-    const nextPhase = phases?.[currentIndex + 1];
+    const currentPhases = phases.data;
 
-    if (!currentPhase) {
-      // No active phase, start first phase
-      advancePhaseMutation.mutate(currentEventId);
+    // Check if there are no phases at all
+    if (currentPhases.length === 0) {
+      toast({
+        title: "No Phases Found",
+        description: "Please create phases for this event before advancing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const activePhase = currentPhases.find(p => p.status === 'active');
+    const currentPhaseIndex = activePhase ? currentPhases.findIndex(p => p.id === activePhase.id) : -1;
+    const nextPhase = currentPhases[currentPhaseIndex + 1];
+
+    if (!activePhase && currentPhases.length > 0) {
+      // No active phase, start the first one
+      if (confirm(`Start the first phase: "${currentPhases[0].name}"?`)) {
+        advancePhaseMutation.mutate(currentEventId);
+      }
       return;
     }
 
     if (!nextPhase) {
-      // Last phase, confirm completion
-      if (confirm("This will complete the event. Are you sure?")) {
+      if (confirm(`Complete the event? This will mark "${activePhase?.name}" as completed.`)) {
         advancePhaseMutation.mutate(currentEventId);
       }
       return;
     }
 
     // Regular phase advancement
-    if (confirm(`Advance from "${currentPhase.name}" to "${nextPhase.name}"?`)) {
+    if (confirm(`Advance from "${activePhase.name}" to "${nextPhase.name}"?`)) {
       advancePhaseMutation.mutate(currentEventId);
     }
   };
@@ -764,7 +777,7 @@ export default function AdminPanel() {
                           </Button>
                         </div>
                       </div>
-                      
+
                       {/* Sub-criteria section */}
                       {selectedCriteria === criterion.id && (
                         <div className="p-4 bg-white border-t">
@@ -778,7 +791,7 @@ export default function AdminPanel() {
                               Add Sub-Criteria
                             </Button>
                           </div>
-                          
+
                           <div className="space-y-2">
                             {subCriteriaData?.map((subCriterion: any) => (
                               <div key={subCriterion.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -814,7 +827,7 @@ export default function AdminPanel() {
                                 </div>
                               </div>
                             ))}
-                            
+
                             {(!subCriteriaData || subCriteriaData.length === 0) && (
                               <div className="text-center py-4 text-gray-500 text-sm">
                                 No sub-criteria defined yet. Add some to break down this scoring category.
@@ -913,8 +926,7 @@ export default function AdminPanel() {
           <TabsContent value="events">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Event Management</CardTitle>
+                <div className="flex justify-between items-center                  <CardTitle>Event Management</CardTitle>
                   <Button onClick={() => setShowEventForm(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Create New Event
