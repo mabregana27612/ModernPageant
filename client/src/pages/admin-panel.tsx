@@ -5,19 +5,59 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Play, Pause, RotateCcw } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Edit, Trash2, Play, Pause, RotateCcw, Users, Trophy, Calendar, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import type { Event, ScoringCriteria, Phase } from "@shared/schema";
+import type { Event, ScoringCriteria, Phase, Contestant, Judge } from "@shared/schema";
 
 export default function AdminPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedEvent, setSelectedEvent] = useState<string>("");
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [showContestantForm, setShowContestantForm] = useState(false);
+  const [showJudgeForm, setShowJudgeForm] = useState(false);
+  const [showCriteriaForm, setShowCriteriaForm] = useState(false);
+
+  // Form states
+  const [eventForm, setEventForm] = useState({
+    name: '',
+    description: '',
+    startDate: '',
+    endDate: '',
+    status: 'upcoming'
+  });
+
+  const [contestantForm, setContestantForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    age: '',
+    location: '',
+    occupation: '',
+    bio: '',
+    talent: ''
+  });
+
+  const [judgeForm, setJudgeForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    specialization: ''
+  });
+
+  const [criteriaForm, setCriteriaForm] = useState({
+    name: '',
+    description: '',
+    weight: '',
+    maxScore: '100'
+  });
 
   // Redirect if not admin
   useEffect(() => {
@@ -27,7 +67,9 @@ export default function AdminPanel() {
         description: "You must be an admin to access this page.",
         variant: "destructive",
       });
-      window.location.href = "/";
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
     }
   }, [user, toast]);
 
@@ -35,26 +77,188 @@ export default function AdminPanel() {
     queryKey: ['/api/events'],
   });
 
+  // Get the active event or first event
+  const activeEvent = events?.find(e => e.status === 'active') || events?.[0];
+  const currentEventId = selectedEvent || activeEvent?.id;
+
+  const { data: contestants } = useQuery<Contestant[]>({
+    queryKey: ['/api/events', currentEventId, 'contestants'],
+    enabled: !!currentEventId,
+  });
+
+  const { data: judges } = useQuery<Judge[]>({
+    queryKey: ['/api/events', currentEventId, 'judges'],
+    enabled: !!currentEventId,
+  });
+
   const { data: criteria } = useQuery<ScoringCriteria[]>({
-    queryKey: ['/api/events', selectedEvent, 'criteria'],
-    enabled: !!selectedEvent,
+    queryKey: ['/api/events', currentEventId, 'criteria'],
+    enabled: !!currentEventId,
   });
 
   const { data: phases } = useQuery<Phase[]>({
-    queryKey: ['/api/events', selectedEvent, 'phases'],
-    enabled: !!selectedEvent,
+    queryKey: ['/api/events', currentEventId, 'phases'],
+    enabled: !!currentEventId,
   });
 
+  // Mutation for creating events
+  const createEventMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await apiRequest('POST', '/api/events', data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Event created",
+        description: "Event has been created successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      setShowEventForm(false);
+      setEventForm({ name: '', description: '', startDate: '', endDate: '', status: 'upcoming' });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to create event. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for creating contestants
+  const createContestantMutation = useMutation({
+    mutationFn: async (data: any) => {
+      // First create user, then create contestant
+      const userData = {
+        id: `contestant_${Date.now()}`,
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        profileImageUrl: `https://ui-avatars.com/api/?name=${data.firstName}+${data.lastName}&background=random`
+      };
+      
+      await apiRequest('POST', '/api/users', userData);
+      
+      const contestantData = {
+        userId: userData.id,
+        contestantNumber: (contestants?.length || 0) + 1,
+        age: parseInt(data.age),
+        location: data.location,
+        occupation: data.occupation,
+        bio: data.bio,
+        talent: data.talent,
+        status: 'approved'
+      };
+      
+      await apiRequest('POST', `/api/events/${currentEventId}/contestants`, contestantData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Contestant added",
+        description: "Contestant has been added successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'contestants'] });
+      setShowContestantForm(false);
+      setContestantForm({ firstName: '', lastName: '', email: '', age: '', location: '', occupation: '', bio: '', talent: '' });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to add contestant. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for creating judges
+  const createJudgeMutation = useMutation({
+    mutationFn: async (data: any) => {
+      // First create user, then create judge
+      const userData = {
+        id: `judge_${Date.now()}`,
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        profileImageUrl: `https://ui-avatars.com/api/?name=${data.firstName}+${data.lastName}&background=random`
+      };
+      
+      await apiRequest('POST', '/api/users', userData);
+      
+      const judgeData = {
+        userId: userData.id,
+        specialization: data.specialization
+      };
+      
+      await apiRequest('POST', `/api/events/${currentEventId}/judges`, judgeData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Judge added",
+        description: "Judge has been added successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'judges'] });
+      setShowJudgeForm(false);
+      setJudgeForm({ firstName: '', lastName: '', email: '', specialization: '' });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to add judge. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for creating criteria
   const createCriteriaMutation = useMutation({
     mutationFn: async (data: any) => {
-      await apiRequest('POST', `/api/events/${selectedEvent}/criteria`, data);
+      await apiRequest('POST', `/api/events/${currentEventId}/criteria`, {
+        name: data.name,
+        description: data.description,
+        weight: parseInt(data.weight),
+        maxScore: parseInt(data.maxScore)
+      });
     },
     onSuccess: () => {
       toast({
         title: "Criteria created",
         description: "Scoring criteria has been created successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent, 'criteria'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
+      setShowCriteriaForm(false);
+      setCriteriaForm({ name: '', description: '', weight: '', maxScore: '100' });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -78,14 +282,14 @@ export default function AdminPanel() {
 
   const updateCriteriaMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      await apiRequest('PATCH', `/api/events/${selectedEvent}/criteria/${id}`, data);
+      await apiRequest('PATCH', `/api/events/${currentEventId}/criteria/${id}`, data);
     },
     onSuccess: () => {
       toast({
         title: "Criteria updated",
         description: "Scoring criteria has been updated successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent, 'criteria'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -109,14 +313,14 @@ export default function AdminPanel() {
 
   const deleteCriteriaMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest('DELETE', `/api/events/${selectedEvent}/criteria/${id}`);
+      await apiRequest('DELETE', `/api/events/${currentEventId}/criteria/${id}`);
     },
     onSuccess: () => {
       toast({
         title: "Criteria deleted",
         description: "Scoring criteria has been deleted successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent, 'criteria'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -138,8 +342,7 @@ export default function AdminPanel() {
     },
   });
 
-  const activeEvent = events?.find(e => e.status === 'active') || events?.[0];
-  const currentEvent = selectedEvent ? events?.find(e => e.id === selectedEvent) : activeEvent;
+  const currentEvent = events?.find(e => e.id === currentEventId) || activeEvent;
 
   if (!currentEvent) {
     return (
@@ -257,7 +460,12 @@ export default function AdminPanel() {
                 {/* Add New Criteria */}
                 <div className="mt-6 p-4 border-2 border-dashed border-gray-200 rounded-lg">
                   <div className="flex items-center justify-center">
-                    <Button variant="ghost" className="text-gray-400 hover:text-gray-600">
+                    <Button 
+                      variant="ghost" 
+                      className="text-gray-400 hover:text-gray-600"
+                      onClick={() => setShowCriteriaForm(true)}
+                      disabled={!currentEventId}
+                    >
                       <Plus className="h-5 w-5 mr-2" />
                       Add New Criteria
                     </Button>
@@ -325,10 +533,39 @@ export default function AdminPanel() {
           <TabsContent value="events">
             <Card>
               <CardHeader>
-                <CardTitle>Event Management</CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Event Management</CardTitle>
+                  <Button onClick={() => setShowEventForm(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create New Event
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600">Event management features coming soon...</p>
+                <div className="space-y-4">
+                  {events?.map((event) => (
+                    <div key={event.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-semibold">{event.name}</h3>
+                        <p className="text-sm text-gray-600">{event.description}</p>
+                        <div className="flex space-x-2 mt-2">
+                          <Badge variant={event.status === 'active' ? 'default' : 'secondary'}>
+                            {event.status}
+                          </Badge>
+                          <Badge variant="outline">{event.currentPhase}</Badge>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -336,10 +573,44 @@ export default function AdminPanel() {
           <TabsContent value="contestants">
             <Card>
               <CardHeader>
-                <CardTitle>Contestant Management</CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Contestant Management</CardTitle>
+                  <Button onClick={() => setShowContestantForm(true)} disabled={!currentEvent}>
+                    <Users className="h-4 w-4 mr-2" />
+                    Add Contestant
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600">Contestant management features coming soon...</p>
+                <div className="space-y-4">
+                  {contestants?.map((contestant) => (
+                    <div key={contestant.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium">#{contestant.contestantNumber}</span>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">{contestant.userId}</h3>
+                          <p className="text-sm text-gray-600">{contestant.bio}</p>
+                          <div className="flex space-x-2 mt-2">
+                            <Badge variant={contestant.status === 'approved' ? 'default' : 'secondary'}>
+                              {contestant.status}
+                            </Badge>
+                            <Badge variant="outline">{contestant.talent}</Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -347,10 +618,38 @@ export default function AdminPanel() {
           <TabsContent value="judges">
             <Card>
               <CardHeader>
-                <CardTitle>Judge Management</CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Judge Management</CardTitle>
+                  <Button onClick={() => setShowJudgeForm(true)} disabled={!currentEvent}>
+                    <Trophy className="h-4 w-4 mr-2" />
+                    Add Judge
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600">Judge management features coming soon...</p>
+                <div className="space-y-4">
+                  {judges?.map((judge) => (
+                    <div key={judge.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium">J</span>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">{judge.userId}</h3>
+                          <p className="text-sm text-gray-600">{judge.specialization}</p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -366,6 +665,315 @@ export default function AdminPanel() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Create Event Form Modal */}
+        {showEventForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle>Create New Event</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="event-name">Event Name</Label>
+                    <Input
+                      id="event-name"
+                      value={eventForm.name}
+                      onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
+                      placeholder="e.g., Miss Universe 2024"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="event-description">Description</Label>
+                    <Textarea
+                      id="event-description"
+                      value={eventForm.description}
+                      onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
+                      placeholder="Event description..."
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="event-start-date">Start Date</Label>
+                    <Input
+                      id="event-start-date"
+                      type="date"
+                      value={eventForm.startDate}
+                      onChange={(e) => setEventForm({ ...eventForm, startDate: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="event-end-date">End Date</Label>
+                    <Input
+                      id="event-end-date"
+                      type="date"
+                      value={eventForm.endDate}
+                      onChange={(e) => setEventForm({ ...eventForm, endDate: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="event-status">Status</Label>
+                    <Select value={eventForm.status} onValueChange={(value) => setEventForm({ ...eventForm, status: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="upcoming">Upcoming</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button 
+                      onClick={() => createEventMutation.mutate(eventForm)}
+                      disabled={createEventMutation.isPending}
+                    >
+                      {createEventMutation.isPending ? 'Creating...' : 'Create Event'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowEventForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Create Contestant Form Modal */}
+        {showContestantForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle>Add New Contestant</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="contestant-first-name">First Name</Label>
+                      <Input
+                        id="contestant-first-name"
+                        value={contestantForm.firstName}
+                        onChange={(e) => setContestantForm({ ...contestantForm, firstName: e.target.value })}
+                        placeholder="First name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="contestant-last-name">Last Name</Label>
+                      <Input
+                        id="contestant-last-name"
+                        value={contestantForm.lastName}
+                        onChange={(e) => setContestantForm({ ...contestantForm, lastName: e.target.value })}
+                        placeholder="Last name"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="contestant-email">Email</Label>
+                    <Input
+                      id="contestant-email"
+                      type="email"
+                      value={contestantForm.email}
+                      onChange={(e) => setContestantForm({ ...contestantForm, email: e.target.value })}
+                      placeholder="contestant@email.com"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contestant-age">Age</Label>
+                    <Input
+                      id="contestant-age"
+                      type="number"
+                      value={contestantForm.age}
+                      onChange={(e) => setContestantForm({ ...contestantForm, age: e.target.value })}
+                      placeholder="Age"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contestant-location">Location</Label>
+                    <Input
+                      id="contestant-location"
+                      value={contestantForm.location}
+                      onChange={(e) => setContestantForm({ ...contestantForm, location: e.target.value })}
+                      placeholder="City, State"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contestant-occupation">Occupation</Label>
+                    <Input
+                      id="contestant-occupation"
+                      value={contestantForm.occupation}
+                      onChange={(e) => setContestantForm({ ...contestantForm, occupation: e.target.value })}
+                      placeholder="Occupation"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contestant-talent">Talent</Label>
+                    <Input
+                      id="contestant-talent"
+                      value={contestantForm.talent}
+                      onChange={(e) => setContestantForm({ ...contestantForm, talent: e.target.value })}
+                      placeholder="e.g., Singing, Dancing, Piano"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contestant-bio">Bio</Label>
+                    <Textarea
+                      id="contestant-bio"
+                      value={contestantForm.bio}
+                      onChange={(e) => setContestantForm({ ...contestantForm, bio: e.target.value })}
+                      placeholder="Brief biography..."
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button 
+                      onClick={() => createContestantMutation.mutate(contestantForm)}
+                      disabled={createContestantMutation.isPending}
+                    >
+                      {createContestantMutation.isPending ? 'Adding...' : 'Add Contestant'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowContestantForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Create Judge Form Modal */}
+        {showJudgeForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle>Add New Judge</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="judge-first-name">First Name</Label>
+                      <Input
+                        id="judge-first-name"
+                        value={judgeForm.firstName}
+                        onChange={(e) => setJudgeForm({ ...judgeForm, firstName: e.target.value })}
+                        placeholder="First name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="judge-last-name">Last Name</Label>
+                      <Input
+                        id="judge-last-name"
+                        value={judgeForm.lastName}
+                        onChange={(e) => setJudgeForm({ ...judgeForm, lastName: e.target.value })}
+                        placeholder="Last name"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="judge-email">Email</Label>
+                    <Input
+                      id="judge-email"
+                      type="email"
+                      value={judgeForm.email}
+                      onChange={(e) => setJudgeForm({ ...judgeForm, email: e.target.value })}
+                      placeholder="judge@email.com"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="judge-specialization">Specialization</Label>
+                    <Input
+                      id="judge-specialization"
+                      value={judgeForm.specialization}
+                      onChange={(e) => setJudgeForm({ ...judgeForm, specialization: e.target.value })}
+                      placeholder="e.g., Fashion, Performance, Interview"
+                    />
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button 
+                      onClick={() => createJudgeMutation.mutate(judgeForm)}
+                      disabled={createJudgeMutation.isPending}
+                    >
+                      {createJudgeMutation.isPending ? 'Adding...' : 'Add Judge'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowJudgeForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Create Criteria Form Modal */}
+        {showCriteriaForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle>Add Scoring Criteria</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="criteria-name">Name</Label>
+                    <Input
+                      id="criteria-name"
+                      value={criteriaForm.name}
+                      onChange={(e) => setCriteriaForm({ ...criteriaForm, name: e.target.value })}
+                      placeholder="e.g., Interview, Talent, Evening Gown"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="criteria-description">Description</Label>
+                    <Textarea
+                      id="criteria-description"
+                      value={criteriaForm.description}
+                      onChange={(e) => setCriteriaForm({ ...criteriaForm, description: e.target.value })}
+                      placeholder="e.g., Communication skills and personality"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="criteria-weight">Weight (%)</Label>
+                    <Input
+                      id="criteria-weight"
+                      type="number"
+                      value={criteriaForm.weight}
+                      onChange={(e) => setCriteriaForm({ ...criteriaForm, weight: e.target.value })}
+                      placeholder="e.g., 25"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="criteria-maxScore">Max Score</Label>
+                    <Input
+                      id="criteria-maxScore"
+                      type="number"
+                      value={criteriaForm.maxScore}
+                      onChange={(e) => setCriteriaForm({ ...criteriaForm, maxScore: e.target.value })}
+                      placeholder="100"
+                    />
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button 
+                      onClick={() => createCriteriaMutation.mutate(criteriaForm)}
+                      disabled={createCriteriaMutation.isPending}
+                    >
+                      {createCriteriaMutation.isPending ? 'Creating...' : 'Create Criteria'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowCriteriaForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

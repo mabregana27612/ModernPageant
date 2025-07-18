@@ -21,6 +21,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User routes
+  app.post('/api/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.upsertUser(req.body);
+      res.status(201).json(user);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
   // Event routes
   app.get('/api/events', async (req, res) => {
     try {
@@ -80,11 +91,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/events/:eventId/contestants', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
       const validatedData = insertContestantSchema.parse({
         ...req.body,
         eventId: req.params.eventId,
-        userId,
       });
       const contestant = await storage.createContestant(validatedData);
       res.status(201).json(contestant);
@@ -107,11 +116,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/events/:eventId/judges', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
       const validatedData = insertJudgeSchema.parse({
         ...req.body,
         eventId: req.params.eventId,
-        userId,
       });
       const judge = await storage.createJudge(validatedData);
       res.status(201).json(judge);

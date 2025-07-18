@@ -64,8 +64,8 @@ export default function Results() {
               </h3>
               <p className="text-gray-600 mb-4">Final Score: {parseFloat(winner.totalScore).toFixed(1)} / 100</p>
               <div className="flex justify-center space-x-4 text-sm">
-                {winner.scores?.map((score: any) => (
-                  <div key={score.criteria} className="bg-white/50 px-4 py-2 rounded-lg">
+                {winner.scores?.map((score: any, index: number) => (
+                  <div key={`${score.criteria}-${index}`} className="bg-white/50 px-4 py-2 rounded-lg">
                     <span className="font-medium">{score.criteria}: {score.score}</span>
                   </div>
                 ))}
@@ -133,8 +133,8 @@ export default function Results() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <div className="flex space-x-2">
-                          {result.scores?.slice(0, 3).map((score: any) => (
-                            <span key={score.criteria} className="bg-gray-100 px-2 py-1 rounded text-xs">
+                          {result.scores?.slice(0, 3).map((score: any, index: number) => (
+                            <span key={`${score.criteria}-${index}-${result.contestantId}`} className="bg-gray-100 px-2 py-1 rounded text-xs">
                               {score.criteria}: {score.score}
                             </span>
                           ))}
