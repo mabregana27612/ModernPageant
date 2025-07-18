@@ -322,18 +322,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const events = await storage.getEvents();
       const activeEvent = events.find(e => e.status === 'active');
-      
+
       if (!activeEvent) {
         return res.json([]);
       }
-      
+
       const phases = await storage.getPhases(activeEvent.id);
       const activePhase = phases.find(p => p.status === 'active') || phases[0];
-      
+
       if (!activePhase) {
         return res.json([]);
       }
-      
+
       const results = await storage.getResults(activeEvent.id, activePhase.id);
       res.json(results);
     } catch (error) {

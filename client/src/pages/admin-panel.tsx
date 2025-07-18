@@ -257,7 +257,7 @@ export default function AdminPanel() {
       await apiRequest('POST', `/api/events/${currentEventId}/criteria`, {
         name: data.name,
         description: data.description,
-        weight: parseInt(data.weight),
+        weight: data.weight,
         maxScore: parseInt(data.maxScore)
       });
     },
