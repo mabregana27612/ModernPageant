@@ -80,6 +80,7 @@ export default function AdminPanel() {
   // Get the active event or first event
   const activeEvent = events?.find(e => e.status === 'active') || events?.[0];
   const currentEventId = selectedEvent || activeEvent?.id;
+  const currentEvent = events?.find(e => e.id === currentEventId);
 
   const { data: contestants } = useQuery<Contestant[]>({
     queryKey: ['/api/events', currentEventId, 'contestants'],
@@ -351,7 +352,73 @@ export default function AdminPanel() {
     },
   });
 
-  const currentEvent = events?.find(e => e.id === currentEventId) || activeEvent;
+  // Mutation for updating event status
+  const updateEventStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      await apiRequest('PATCH', `/api/events/${id}`, { status });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Event updated",
+        description: "Event status has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update event status. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for deleting event
+  const deleteEventMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest('DELETE', `/api/events/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Event deleted",
+        description: "Event has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      // Reset selected event if it was deleted
+      if (selectedEvent === id) {
+        setSelectedEvent(null);
+      }
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete event. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   if (!currentEvent) {
     return (
@@ -392,16 +459,56 @@ export default function AdminPanel() {
         {/* Event Selection */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Current Event: {currentEvent.name}</CardTitle>
+            <CardTitle>Current Event</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center space-x-4">
-              <Badge variant={currentEvent.status === 'active' ? 'default' : 'secondary'}>
-                {currentEvent.status}
-              </Badge>
-              <Badge variant="outline">
-                {currentEvent.currentPhase}
-              </Badge>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div>
+                  <Select value={currentEventId || ''} onValueChange={setSelectedEvent}>
+                    <SelectTrigger className="w-64">
+                      <SelectValue placeholder="Select an event" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {events?.map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          <div className="flex items-center space-x-2">
+                            <span>{event.name}</span>
+                            <Badge variant={event.status === 'active' ? 'default' : 'secondary'} className="ml-2">
+                              {event.status}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {currentEvent && (
+                  <div className="flex items-center space-x-2">
+                    <Badge variant={currentEvent.status === 'active' ? 'default' : 'secondary'}>
+                      {currentEvent.status}
+                    </Badge>
+                    <Badge variant="outline">
+                      {currentEvent.currentPhase}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              {currentEvent && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Change Status:</span>
+                  <Select value={currentEvent.status} onValueChange={(status) => updateEventStatusMutation.mutate({ id: currentEvent.id, status })}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="upcoming">Upcoming</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -583,20 +690,30 @@ export default function AdminPanel() {
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => {
-                          toast({
-                            title: "Feature Coming Soon",
-                            description: "Event editing will be available soon.",
-                          });
-                        }}>
-                          <Edit className="h-4 w-4" />
+                        <Select value={event.status} onValueChange={(status) => updateEventStatusMutation.mutate({ id: event.id, status })}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="upcoming">Upcoming</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setSelectedEvent(event.id)}
+                          disabled={selectedEvent === event.id}
+                        >
+                          {selectedEvent === event.id ? 'Selected' : 'Select'}
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => {
-                          toast({
-                            title: "Feature Coming Soon",
-                            description: "Event deletion will be available soon.",
-                          });
-                        }}>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => deleteEventMutation.mutate(event.id)}
+                          disabled={deleteEventMutation.isPending}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
