@@ -486,6 +486,37 @@ export default function AdminPanel() {
     },
   });
 
+  const deleteEventMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest('DELETE', `/api/events/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Event deleted",
+        description: "Event has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete event. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const advancePhaseMutation = useMutation({
     mutationFn: async (eventId: string) => {
       const response = await apiRequest('POST', `/api/events/${eventId}/advance-phase`);

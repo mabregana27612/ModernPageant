@@ -76,30 +76,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/events/:id', isAuthenticated, async (req, res) => {
+  app.patch('/api/events/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const validatedData = insertEventSchema.partial().parse(req.body);
-      const event = await storage.updateEvent(req.params.id, validatedData);
+      const event = await storage.updateEvent(req.params.id, req.body);
       res.json(event);
     } catch (error) {
       console.error("Error updating event:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.issues.map(issue => ({
-            field: issue.path.join('.'),
-            message: issue.message
-          }))
-        });
-      }
       res.status(500).json({ message: "Failed to update event" });
     }
   });
 
-  app.delete('/api/events/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/events/:id', isAuthenticated, async (req: any, res) => {
     try {
       await storage.deleteEvent(req.params.id);
-      res.status(204).send();
+      res.json({ message: "Event deleted successfully" });
     } catch (error) {
       console.error("Error deleting event:", error);
       res.status(500).json({ message: "Failed to delete event" });

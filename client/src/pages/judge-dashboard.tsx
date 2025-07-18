@@ -36,7 +36,7 @@ export default function JudgeDashboard() {
   });
 
   const currentCriteria = criteria?.[currentCriteriaIndex];
-  
+
   const { data: subCriteria } = useQuery<SubCriteria[]>({
     queryKey: ['/api/criteria', currentCriteria?.id, 'sub-criteria'],
     enabled: !!currentCriteria?.id,
@@ -76,7 +76,7 @@ export default function JudgeDashboard() {
   const handleScoreSubmit = (contestantId: string, criteriaId: string) => {
     const scoreKey = `${contestantId}-${criteriaId}`;
     const score = scores[scoreKey];
-    
+
     if (!score || score < 1 || score > 10) {
       toast({
         title: "Invalid score",
@@ -121,6 +121,7 @@ export default function JudgeDashboard() {
 
   const activeEvent = events?.find(e => e.status === 'active');
   const currentEvent = selectedEvent ? events?.find(e => e.id === selectedEvent) : activeEvent;
+  const currentEventId = currentEvent?.id || '';
 
   if (!currentEvent) {
     return (
@@ -140,22 +141,36 @@ export default function JudgeDashboard() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-            <div>
-              <h1 className="text-3xl font-playfair font-bold text-gray-900 mb-2">Judge Dashboard</h1>
-              <p className="text-gray-600">{currentEvent.name}</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+          <div>
+            <h1 className="text-3xl font-playfair font-bold text-gray-900 mb-2">Judge Dashboard</h1>
+            <p className="text-gray-600">{currentEvent.name}</p>
+          </div>
+          <div className="flex items-center space-x-4 mt-4 sm:mt-0">
+            <div className="flex items-center space-x-2">
+              <Label className="text-sm text-gray-600">Contest:</Label>
+              <select
+                value={currentEventId}
+                onChange={(e) => setSelectedEvent(e.target.value)}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+              >
+                {events?.filter(e => e.status === 'active' || e.status === 'upcoming').map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.name} ({event.status})
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="flex items-center space-x-4 mt-4 sm:mt-0">
-              <Badge className="bg-primary/10 text-primary">
-                Phase: {currentEvent.currentPhase}
-              </Badge>
-              <Badge className="bg-green-100 text-green-800">
-                {contestants?.length || 0} Contestants
-              </Badge>
-            </div>
+            <Badge className="bg-primary/10 text-primary">
+              Phase: {currentEvent.currentPhase}
+            </Badge>
+            <Badge className="bg-green-100 text-green-800">
+              {contestants?.length || 0} Contestants
+            </Badge>
           </div>
         </div>
+      </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -287,7 +302,7 @@ export default function JudgeDashboard() {
                       />
                       <span className="text-lg text-gray-500">/10</span>
                     </div>
-                    
+
                     <Button
                       onClick={() => handleScoreSubmit(contestants[currentContestantIndex].id, currentCriteria?.id || '')}
                       className="w-full"
