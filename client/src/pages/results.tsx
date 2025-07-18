@@ -13,8 +13,7 @@ export default function Results() {
   });
 
   const { data: results } = useQuery<any[]>({
-    queryKey: ['/api/events', selectedEvent, 'results'],
-    enabled: !!selectedEvent,
+    queryKey: ['/api/results'],
   });
 
   const activeEvent = events?.find(e => e.status === 'active') || events?.[0];
