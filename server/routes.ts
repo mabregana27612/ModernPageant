@@ -265,6 +265,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/events/:eventId/advance-phase', isAuthenticated, async (req, res) => {
+    try {
+      const result = await storage.advancePhase(req.params.eventId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error advancing phase:", error);
+      res.status(500).json({ message: "Failed to advance phase" });
+    }
+  });
+
   // Score routes
   app.get('/api/events/:eventId/scores', async (req, res) => {
     try {

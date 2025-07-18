@@ -226,6 +226,87 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async advancePhase(eventId: string): Promise<{ message: string; newPhase?: Phase }> {
+    // Get all phases for the event ordered by their sequence
+    const allPhases = await db
+      .select()
+      .from(phases)
+      .where(eq(phases.eventId, eventId))
+      .orderBy(phases.order);
+
+    if (allPhases.length === 0) {
+      throw new Error("No phases found for this event");
+    }
+
+    // Find current active phase
+    const currentPhase = allPhases.find(p => p.status === 'active');
+    
+    if (!currentPhase) {
+      // If no active phase, activate the first one
+      const firstPhase = allPhases[0];
+      const [updated] = await db
+        .update(phases)
+        .set({ status: 'active' })
+        .where(eq(phases.id, firstPhase.id))
+        .returning();
+      
+      // Update event's current phase
+      await db
+        .update(events)
+        .set({ currentPhase: firstPhase.name })
+        .where(eq(events.id, eventId));
+
+      return { message: "Started first phase", newPhase: updated };
+    }
+
+    // Find next phase
+    const currentIndex = allPhases.findIndex(p => p.id === currentPhase.id);
+    const nextPhase = allPhases[currentIndex + 1];
+
+    if (!nextPhase) {
+      // No next phase, mark current as completed and event as completed
+      await db
+        .update(phases)
+        .set({ status: 'completed' })
+        .where(eq(phases.id, currentPhase.id));
+
+      await db
+        .update(events)
+        .set({ status: 'completed', currentPhase: 'completed' })
+        .where(eq(events.id, eventId));
+
+      return { message: "Event completed - no more phases" };
+    }
+
+    // Mark current phase as completed
+    await db
+      .update(phases)
+      .set({ status: 'completed' })
+      .where(eq(phases.id, currentPhase.id));
+
+    // Activate next phase
+    const [updatedNextPhase] = await db
+      .update(phases)
+      .set({ status: 'active' })
+      .where(eq(phases.id, nextPhase.id))
+      .returning();
+
+    // Update event's current phase
+    await db
+      .update(events)
+      .set({ currentPhase: nextPhase.name })
+      .where(eq(events.id, eventId));
+
+    // If next phase has resetScores flag, clear existing scores
+    if (nextPhase.resetScores) {
+      await db
+        .delete(scores)
+        .where(and(eq(scores.eventId, eventId), eq(scores.phaseId, nextPhase.id)));
+    }
+
+    return { message: `Advanced to ${nextPhase.name}`, newPhase: updatedNextPhase };
+  }
+
   // Score operations
   async getScores(eventId: string, phaseId?: string): Promise<(Score & { contestant: Contestant; judge: Judge; criteria: ScoringCriteria })[]> {
     const baseQuery = db

@@ -128,7 +128,7 @@ export default function AdminPanel() {
         }, 500);
         return;
       }
-      
+
       // Try to parse error details for better feedback
       let errorMessage = "Failed to create event. Please try again.";
       if (error.message.includes("Validation error")) {
@@ -136,7 +136,7 @@ export default function AdminPanel() {
       } else if (error.message.includes("date")) {
         errorMessage = "Please check the date format and try again.";
       }
-      
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -156,9 +156,9 @@ export default function AdminPanel() {
         lastName: data.lastName,
         profileImageUrl: `https://ui-avatars.com/api/?name=${data.firstName}+${data.lastName}&background=random`
       };
-      
+
       await apiRequest('POST', '/api/users', userData);
-      
+
       const contestantData = {
         userId: userData.id,
         contestantNumber: (contestants?.length || 0) + 1,
@@ -169,7 +169,7 @@ export default function AdminPanel() {
         talent: data.talent,
         status: 'approved'
       };
-      
+
       await apiRequest('POST', `/api/events/${currentEventId}/contestants`, contestantData);
     },
     onSuccess: () => {
@@ -212,14 +212,14 @@ export default function AdminPanel() {
         lastName: data.lastName,
         profileImageUrl: `https://ui-avatars.com/api/?name=${data.firstName}+${data.lastName}&background=random`
       };
-      
+
       await apiRequest('POST', '/api/users', userData);
-      
+
       const judgeData = {
         userId: userData.id,
         specialization: data.specialization
       };
-      
+
       await apiRequest('POST', `/api/events/${currentEventId}/judges`, judgeData);
     },
     onSuccess: () => {
@@ -384,21 +384,17 @@ export default function AdminPanel() {
     },
   });
 
-  // Mutation for deleting event
-  const deleteEventMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await apiRequest('DELETE', `/api/events/${id}`);
+  const advancePhaseMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      return await apiRequest('POST', `/api/events/${eventId}/advance-phase`, {});
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
-        title: "Event deleted",
-        description: "Event has been deleted successfully.",
+        title: "Phase Advanced",
+        description: data.message,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
-      // Reset selected event if it was deleted
-      if (selectedEvent === id) {
-        setSelectedEvent(null);
-      }
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'phases'] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -414,11 +410,68 @@ export default function AdminPanel() {
       }
       toast({
         title: "Error",
-        description: "Failed to delete event. Please try again.",
+        description: "Failed to advance phase.",
         variant: "destructive",
       });
     },
   });
+
+  const handleAddScoringCriteria = async (data: any) => {
+    if (!currentEventId) return;
+
+    try {
+      await apiRequest('POST', `/api/events/${currentEventId}/criteria`, data);
+      toast({
+        title: "Scoring criteria added",
+        description: "New scoring criteria has been added successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
+    } catch (error) {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to add scoring criteria.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAdvancePhase = () => {
+    if (!currentEventId) return;
+
+    const currentPhase = phases?.find(p => p.status === 'active');
+    const currentIndex = phases?.findIndex(p => p.status === 'active') ?? -1;
+    const nextPhase = phases?.[currentIndex + 1];
+
+    if (!currentPhase) {
+      // No active phase, start first phase
+      advancePhaseMutation.mutate(currentEventId);
+      return;
+    }
+
+    if (!nextPhase) {
+      // Last phase, confirm completion
+      if (confirm("This will complete the event. Are you sure?")) {
+        advancePhaseMutation.mutate(currentEventId);
+      }
+      return;
+    }
+
+    // Regular phase advancement
+    if (confirm(`Advance from "${currentPhase.name}" to "${nextPhase.name}"?`)) {
+      advancePhaseMutation.mutate(currentEventId);
+    }
+  };
 
   if (!currentEvent) {
     return (
@@ -577,7 +630,7 @@ export default function AdminPanel() {
                     </div>
                   ))}
                 </div>
-                
+
                 {/* Add New Criteria */}
                 <div className="mt-6 p-4 border-2 border-dashed border-gray-200 rounded-lg">
                   <div className="flex items-center justify-center">
@@ -637,17 +690,14 @@ export default function AdminPanel() {
                     </div>
                   ))}
                 </div>
-                
+
                 {/* Phase Actions */}
                 <div className="mt-6 flex space-x-4">
                   <Button onClick={() => {
-                    toast({
-                      title: "Feature Coming Soon",
-                      description: "Phase advancement will be available soon.",
-                    });
-                  }}>
+                    handleAdvancePhase();
+                  }} disabled={advancePhaseMutation.isLoading}>
                     <Play className="h-4 w-4 mr-2" />
-                    Advance to Next Phase
+                    {advancePhaseMutation.isLoading ? 'Advancing...' : 'Advance to Next Phase'}
                   </Button>
                   <Button variant="outline" onClick={() => {
                     toast({
@@ -861,8 +911,7 @@ export default function AdminPanel() {
                   <div>
                     <Label htmlFor="event-description">Description</Label>
                     <Textarea
-                      id="event-description"
-                      value={eventForm.description}
+                      id="event-description                      value={eventForm.description}
                       onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
                       placeholder="Event description..."
                       rows={3}
