@@ -1,0 +1,242 @@
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Eye, Download, CheckCircle, Clock, Trophy } from "lucide-react";
+import { useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { isUnauthorizedError } from "@/lib/authUtils";
+import type { Event, Contestant, ScoringCriteria, User } from "@shared/schema";
+
+export default function JudgeDashboard() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [selectedEvent, setSelectedEvent] = useState<string>("");
+  const [scores, setScores] = useState<Record<string, number>>({});
+
+  const { data: events } = useQuery<Event[]>({
+    queryKey: ['/api/events'],
+  });
+
+  const { data: contestants } = useQuery<(Contestant & { user: User })[]>({
+    queryKey: ['/api/events', selectedEvent, 'contestants'],
+    enabled: !!selectedEvent,
+  });
+
+  const { data: criteria } = useQuery<ScoringCriteria[]>({
+    queryKey: ['/api/events', selectedEvent, 'criteria'],
+    enabled: !!selectedEvent,
+  });
+
+  const scoreMutation = useMutation({
+    mutationFn: async (scoreData: any) => {
+      await apiRequest('POST', `/api/events/${selectedEvent}/scores`, scoreData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Score submitted",
+        description: "Your score has been recorded successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to submit score. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleScoreSubmit = (contestantId: string, criteriaId: string) => {
+    const scoreKey = `${contestantId}-${criteriaId}`;
+    const score = scores[scoreKey];
+    
+    if (!score || score < 1 || score > 10) {
+      toast({
+        title: "Invalid score",
+        description: "Score must be between 1 and 10.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    scoreMutation.mutate({
+      contestantId,
+      criteriaId,
+      judgeId: user?.id,
+      phaseId: "current-phase-id", // This should come from the event's current phase
+      score,
+    });
+  };
+
+  const activeEvent = events?.find(e => e.status === 'active');
+  const currentEvent = selectedEvent ? events?.find(e => e.id === selectedEvent) : activeEvent;
+
+  if (!currentEvent) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Active Events</h3>
+            <p className="text-gray-600">There are no active events to judge at the moment.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div>
+              <h1 className="text-3xl font-playfair font-bold text-gray-900 mb-2">Judge Dashboard</h1>
+              <p className="text-gray-600">{currentEvent.name}</p>
+            </div>
+            <div className="flex items-center space-x-4 mt-4 sm:mt-0">
+              <Badge className="bg-primary/10 text-primary">
+                Phase: {currentEvent.currentPhase}
+              </Badge>
+              <Badge className="bg-green-100 text-green-800">
+                {contestants?.length || 0} Contestants
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Scoring Categories */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Scoring Categories</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {criteria?.map((criterion) => (
+                <div key={criterion.id} className="bg-primary/5 p-4 rounded-lg border border-primary/10">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{criterion.weight}%</div>
+                    <div className="text-sm text-gray-600">{criterion.name}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contestants Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {contestants?.map((contestant) => (
+            <Card key={contestant.id} className="hover:shadow-md transition-shadow">
+              <div className="relative">
+                <img 
+                  src={contestant.photoUrl || 'https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300'} 
+                  alt={`${contestant.user.firstName} ${contestant.user.lastName}`}
+                  className="w-full h-48 object-cover rounded-t-lg"
+                />
+                <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
+                  #{contestant.contestantNumber}
+                </div>
+                <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  <CheckCircle className="h-4 w-4" />
+                </div>
+              </div>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {contestant.user.firstName} {contestant.user.lastName}
+                </h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  Age: {contestant.age} • {contestant.location} • {contestant.occupation}
+                </p>
+                
+                {/* Score Inputs */}
+                <div className="space-y-3">
+                  {criteria?.map((criterion) => {
+                    const scoreKey = `${contestant.id}-${criterion.id}`;
+                    return (
+                      <div key={criterion.id} className="flex items-center justify-between">
+                        <Label htmlFor={scoreKey} className="text-sm font-medium text-gray-700">
+                          {criterion.name}
+                        </Label>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            id={scoreKey}
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={scores[scoreKey] || ''}
+                            onChange={(e) => setScores(prev => ({
+                              ...prev,
+                              [scoreKey]: parseInt(e.target.value) || 0
+                            }))}
+                            className="w-16 text-center"
+                          />
+                          <span className="text-sm text-gray-500">/10</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                <div className="mt-4 space-y-2">
+                  {criteria?.map((criterion) => (
+                    <Button
+                      key={criterion.id}
+                      onClick={() => handleScoreSubmit(contestant.id, criterion.id)}
+                      className="w-full"
+                      disabled={scoreMutation.isPending}
+                    >
+                      {scoreMutation.isPending ? (
+                        <Clock className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                      )}
+                      Submit {criterion.name} Score
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8 flex flex-wrap gap-4 justify-center">
+          <Button variant="outline">
+            <Eye className="h-4 w-4 mr-2" />
+            View All Scores
+          </Button>
+          <Button variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Export Scores
+          </Button>
+          <Button className="bg-green-600 hover:bg-green-700">
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Finalize Round
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
