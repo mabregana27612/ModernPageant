@@ -581,20 +581,25 @@ export default function AdminPanel() {
   };
 
   const handleAdvancePhase = () => {
-    if (!currentEvent || !phases) return;
-
-    const currentPhases = phases;
-
-    // Check if there are no phases at all
-    if (currentPhases.length === 0) {
+    if (!currentEvent) {
       toast({
-        title: "No Phases Found",
-        description: "Please create phases for this event before advancing.",
+        title: "No Event Selected",
+        description: "Please select an event first.",
         variant: "destructive",
       });
       return;
     }
 
+    if (!phases || phases.length === 0) {
+      toast({
+        title: "No Phases Found",
+        description: "Please create phases for this event before advancing. You can run the migration script to add default phases.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const currentPhases = phases;
     const activePhase = currentPhases.find(p => p.status === 'active');
     const currentPhaseIndex = activePhase ? currentPhases.findIndex(p => p.id === activePhase.id) : -1;
     const nextPhase = currentPhases[currentPhaseIndex + 1];
@@ -715,10 +720,11 @@ export default function AdminPanel() {
 
         {/* Admin Tabs */}
         <Tabs defaultValue="scoring" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="contestants">Contestants</TabsTrigger>
             <TabsTrigger value="judges">Judges</TabsTrigger>
+            <TabsTrigger value="phases">Phases</TabsTrigger>
             <TabsTrigger value="scoring">Scoring</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
@@ -1082,6 +1088,91 @@ export default function AdminPanel() {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="phases">
+            <Card>
+              <CardHeader>
+                <CardTitle>Phase Management</CardTitle>
+                <p className="text-gray-600">Manage competition phases and progression</p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {phases && phases.length > 0 ? (
+                    phases.map((phase) => (
+                      <div key={phase.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-2">
+                            {phase.status === 'active' ? (
+                              <Play className="h-5 w-5 text-green-500" />
+                            ) : phase.status === 'completed' ? (
+                              <Trophy className="h-5 w-5 text-yellow-500" />
+                            ) : (
+                              <Pause className="h-5 w-5 text-gray-400" />
+                            )}
+                            <span className="font-medium">{phase.name}</span>
+                          </div>
+                          <Badge variant={phase.status === 'active' ? 'default' : 'secondary'}>
+                            {phase.status}
+                          </Badge>
+                          <span className="text-sm text-gray-600">Order: {phase.order}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={phase.resetScores}
+                              className="rounded border-gray-300 text-primary focus:ring-primary/20"
+                              disabled
+                            />
+                            <span className="text-sm text-gray-600">Reset scores after phase</span>
+                          </label>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Trophy className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <h3 className="text-lg font-medium mb-2">No Phases Found</h3>
+                      <p className="text-sm">This event doesn't have any phases configured yet.</p>
+                      <Button 
+                        className="mt-4"
+                        onClick={() => {
+                          toast({
+                            title: "Creating Default Phases",
+                            description: "Adding default phases for this event...",
+                          });
+                          // You could add an API call here to create default phases
+                        }}
+                      >
+                        Create Default Phases
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Phase Actions */}
+                {phases && phases.length > 0 && (
+                  <div className="mt-6 flex space-x-4">
+                    <Button onClick={() => {
+                      handleAdvancePhase();
+                    }} disabled={advancePhaseMutation.isPending}>
+                      <Play className="h-4 w-4 mr-2" />
+                      {advancePhaseMutation.isPending ? 'Advancing...' : 'Advance to Next Phase'}
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      toast({
+                        title: "Feature Coming Soon",
+                        description: "Phase reset will be available soon.",
+                      });
+                    }}>
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Reset Current Phase
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

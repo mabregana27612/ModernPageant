@@ -186,36 +186,92 @@ async function seedComprehensiveData() {
 
     const createdContestants = await db.insert(contestants).values(contestantData).returning();
 
-    // Create multiple phases for the active event
-    const phaseData = [
-      {
-        eventId: activeEvent.id,
-        name: "Preliminaries",
-        description: "Initial judging round with all contestants",
-        status: "completed",
-        order: 1,
-        resetScores: false
-      },
-      {
-        eventId: activeEvent.id,
-        name: "Semi-Finals",
-        description: "Top 10 contestants advance to semi-final round",
-        status: "completed",
-        order: 2,
-        resetScores: false
-      },
-      {
-        eventId: activeEvent.id,
-        name: "Finals",
-        description: "Top 5 contestants compete for the crown with reset scores",
-        status: "active",
-        order: 3,
-        resetScores: true
+    // Create multiple phases for all events
+    const phaseData = [];
+    
+    // Create phases for each event
+    for (const event of createdEvents) {
+      if (event.status === 'active') {
+        // Active event - Miss Universe 2025
+        phaseData.push(
+          {
+            eventId: event.id,
+            name: "Preliminaries",
+            description: "Initial judging round with all contestants",
+            status: "completed",
+            order: 1,
+            resetScores: false
+          },
+          {
+            eventId: event.id,
+            name: "Semi-Finals",
+            description: "Top 10 contestants advance to semi-final round",
+            status: "completed",
+            order: 2,
+            resetScores: false
+          },
+          {
+            eventId: event.id,
+            name: "Finals",
+            description: "Top 5 contestants compete for the crown with reset scores",
+            status: "active",
+            order: 3,
+            resetScores: true
+          }
+        );
+      } else if (event.status === 'upcoming') {
+        // Upcoming event - Miss World 2025
+        phaseData.push(
+          {
+            eventId: event.id,
+            name: "Registration",
+            description: "Contestant registration and verification",
+            status: "active",
+            order: 1,
+            resetScores: false
+          },
+          {
+            eventId: event.id,
+            name: "Preliminaries",
+            description: "Initial judging round with all contestants",
+            status: "pending",
+            order: 2,
+            resetScores: false
+          },
+          {
+            eventId: event.id,
+            name: "Finals",
+            description: "Final competition round",
+            status: "pending",
+            order: 3,
+            resetScores: true
+          }
+        );
+      } else if (event.status === 'completed') {
+        // Completed event - Miss International 2025
+        phaseData.push(
+          {
+            eventId: event.id,
+            name: "Preliminaries",
+            description: "Initial judging round with all contestants",
+            status: "completed",
+            order: 1,
+            resetScores: false
+          },
+          {
+            eventId: event.id,
+            name: "Finals",
+            description: "Final competition round",
+            status: "completed",
+            order: 2,
+            resetScores: true
+          }
+        );
       }
-    ];
+    }
 
     const createdPhases = await db.insert(phases).values(phaseData).returning();
-    const finalsPhase = createdPhases[2]; // Finals phase
+    const finalsPhase = createdPhases.find(p => p.name === "Finals" && p.status === "active"); // Finals phase for active event
 
     // Create comprehensive scoring criteria with different weights
     const criteriaData = [
@@ -293,53 +349,55 @@ async function seedComprehensiveData() {
       }
     ];
 
-    // Create scores for top 5 finalists
-    for (let i = 0; i < 5; i++) {
-      const contestant = createdContestants[i];
-      const scores = finalistScores[i];
-      
-      for (let j = 0; j < createdJudges.length; j++) {
-        const judge = createdJudges[j];
+    // Create scores for top 5 finalists (only if finals phase exists)
+    if (finalsPhase) {
+      for (let i = 0; i < 5; i++) {
+        const contestant = createdContestants[i];
+        const scores = finalistScores[i];
         
-        // Interview scores
-        scoreData.push({
-          eventId: activeEvent.id,
-          phaseId: finalsPhase.id,
-          contestantId: contestant.id,
-          judgeId: judge.id,
-          criteriaId: createdCriteria[0].id,
-          score: scores.interview[j]
-        });
-        
-        // Talent scores
-        scoreData.push({
-          eventId: activeEvent.id,
-          phaseId: finalsPhase.id,
-          contestantId: contestant.id,
-          judgeId: judge.id,
-          criteriaId: createdCriteria[1].id,
-          score: scores.talent[j]
-        });
-        
-        // Evening Gown scores
-        scoreData.push({
-          eventId: activeEvent.id,
-          phaseId: finalsPhase.id,
-          contestantId: contestant.id,
-          judgeId: judge.id,
-          criteriaId: createdCriteria[2].id,
-          score: scores.eveningGown[j]
-        });
-        
-        // Swimwear scores
-        scoreData.push({
-          eventId: activeEvent.id,
-          phaseId: finalsPhase.id,
-          contestantId: contestant.id,
-          judgeId: judge.id,
-          criteriaId: createdCriteria[3].id,
-          score: scores.swimwear[j]
-        });
+        for (let j = 0; j < createdJudges.length; j++) {
+          const judge = createdJudges[j];
+          
+          // Interview scores
+          scoreData.push({
+            eventId: activeEvent.id,
+            phaseId: finalsPhase.id,
+            contestantId: contestant.id,
+            judgeId: judge.id,
+            criteriaId: createdCriteria[0].id,
+            score: scores.interview[j]
+          });
+          
+          // Talent scores
+          scoreData.push({
+            eventId: activeEvent.id,
+            phaseId: finalsPhase.id,
+            contestantId: contestant.id,
+            judgeId: judge.id,
+            criteriaId: createdCriteria[1].id,
+            score: scores.talent[j]
+          });
+          
+          // Evening Gown scores
+          scoreData.push({
+            eventId: activeEvent.id,
+            phaseId: finalsPhase.id,
+            contestantId: contestant.id,
+            judgeId: judge.id,
+            criteriaId: createdCriteria[2].id,
+            score: scores.eveningGown[j]
+          });
+          
+          // Swimwear scores
+          scoreData.push({
+            eventId: activeEvent.id,
+            phaseId: finalsPhase.id,
+            contestantId: contestant.id,
+            judgeId: judge.id,
+            criteriaId: createdCriteria[3].id,
+            score: scores.swimwear[j]
+          });
+        }
       }
     }
 
@@ -353,7 +411,7 @@ async function seedComprehensiveData() {
     console.log(`Created ${createdPhases.length} phases`);
     console.log(`Created ${scoreData.length} scores`);
     console.log(`\n🎯 Active Event: ${activeEvent.name}`);
-    console.log(`📊 Finals Phase: ${finalsPhase.name} (with score reset)`);
+    console.log(`📊 Finals Phase: ${finalsPhase ? finalsPhase.name + ' (with score reset)' : 'No active finals phase'}`);
     console.log(`👑 Winner: Isabella Rodriguez`);
 
   } catch (error) {
