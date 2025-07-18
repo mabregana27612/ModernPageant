@@ -1,4 +1,3 @@
-typescript
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -912,11 +911,9 @@ export default function AdminPanel() {
                   {judges?.map((judge) => (
                     <div key={judge.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium">J</span>
+                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center"><span className="text-sm font-medium">J</span>
                         </div>
-                        ```tool_code
-<div>
+                        <div>
                           <h3 className="font-semibold">{judge.userId}</h3>
                           <p className="text-sm text-gray-600">{judge.specialization}</p>
                         </div>
