@@ -945,7 +945,8 @@ export default function AdminPanel() {
                   <div>
                     <Label htmlFor="event-description">Description</Label>
                     <Textarea
-                      id="event-description                      value={eventForm.description}
+                      id="event-description"
+                      value={eventForm.description}
                       onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
                       placeholder="Event description..."
                       rows={3}
