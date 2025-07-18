@@ -62,7 +62,7 @@ export default function Results() {
               <h3 className="text-xl font-semibold text-gray-900 mb-1">
                 {winner.user.firstName} {winner.user.lastName}
               </h3>
-              <p className="text-gray-600 mb-4">Final Score: {winner.totalScore.toFixed(1)} / 100</p>
+              <p className="text-gray-600 mb-4">Final Score: {parseFloat(winner.totalScore).toFixed(1)} / 100</p>
               <div className="flex justify-center space-x-4 text-sm">
                 {winner.scores?.map((score: any) => (
                   <div key={score.criteria} className="bg-white/50 px-4 py-2 rounded-lg">
@@ -128,7 +128,7 @@ export default function Results() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Badge variant={index === 0 ? 'default' : 'secondary'}>
-                          {result.totalScore.toFixed(1)}
+                          {parseFloat(result.totalScore).toFixed(1)}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
