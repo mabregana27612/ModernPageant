@@ -65,6 +65,17 @@ export const scoringCriteria = pgTable("scoring_criteria", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Sub-criteria table for detailed scoring breakdown
+export const subCriteria = pgTable("sub_criteria", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  criteriaId: uuid("criteria_id").notNull().references(() => scoringCriteria.id),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  weight: decimal("weight", { precision: 5, scale: 2 }).notNull(), // percentage weight within parent criteria
+  maxScore: integer("max_score").notNull().default(10),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Competition phases table
 export const phases = pgTable("phases", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -107,6 +118,7 @@ export const scores = pgTable("scores", {
   contestantId: uuid("contestant_id").notNull().references(() => contestants.id),
   judgeId: uuid("judge_id").notNull().references(() => judges.id),
   criteriaId: uuid("criteria_id").notNull().references(() => scoringCriteria.id),
+  subCriteriaId: uuid("sub_criteria_id").references(() => subCriteria.id), // Optional: can score main criteria directly or sub-criteria
   phaseId: uuid("phase_id").notNull().references(() => phases.id),
   score: decimal("score", { precision: 5, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -137,6 +149,12 @@ export const judgesRelations = relations(judges, ({ one, many }) => ({
 export const scoringCriteriaRelations = relations(scoringCriteria, ({ one, many }) => ({
   event: one(events, { fields: [scoringCriteria.eventId], references: [events.id] }),
   scores: many(scores),
+  subCriteria: many(subCriteria),
+}));
+
+export const subCriteriaRelations = relations(subCriteria, ({ one, many }) => ({
+  criteria: one(scoringCriteria, { fields: [subCriteria.criteriaId], references: [scoringCriteria.id] }),
+  scores: many(scores),
 }));
 
 export const phasesRelations = relations(phases, ({ one, many }) => ({
@@ -149,6 +167,7 @@ export const scoresRelations = relations(scores, ({ one }) => ({
   contestant: one(contestants, { fields: [scores.contestantId], references: [contestants.id] }),
   judge: one(judges, { fields: [scores.judgeId], references: [judges.id] }),
   criteria: one(scoringCriteria, { fields: [scores.criteriaId], references: [scoringCriteria.id] }),
+  subCriteria: one(subCriteria, { fields: [scores.subCriteriaId], references: [subCriteria.id] }),
   phase: one(phases, { fields: [scores.phaseId], references: [phases.id] }),
 }));
 
@@ -161,6 +180,7 @@ export const insertEventSchema = createInsertSchema(events).extend({
 export const insertContestantSchema = createInsertSchema(contestants);
 export const insertJudgeSchema = createInsertSchema(judges);
 export const insertScoringCriteriaSchema = createInsertSchema(scoringCriteria);
+export const insertSubCriteriaSchema = createInsertSchema(subCriteria);
 export const insertPhaseSchema = createInsertSchema(phases);
 export const insertScoreSchema = createInsertSchema(scores);
 
@@ -175,6 +195,8 @@ export type Judge = typeof judges.$inferSelect;
 export type InsertJudge = z.infer<typeof insertJudgeSchema>;
 export type ScoringCriteria = typeof scoringCriteria.$inferSelect;
 export type InsertScoringCriteria = z.infer<typeof insertScoringCriteriaSchema>;
+export type SubCriteria = typeof subCriteria.$inferSelect;
+export type InsertSubCriteria = z.infer<typeof insertSubCriteriaSchema>;
 export type Phase = typeof phases.$inferSelect;
 export type InsertPhase = z.infer<typeof insertPhaseSchema>;
 export type Score = typeof scores.$inferSelect;

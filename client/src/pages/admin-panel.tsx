@@ -24,6 +24,20 @@ export default function AdminPanel() {
   const [showContestantForm, setShowContestantForm] = useState(false);
   const [showJudgeForm, setShowJudgeForm] = useState(false);
   const [showCriteriaForm, setShowCriteriaForm] = useState(false);
+  const [criteriaForm, setCriteriaForm] = useState({
+    name: '',
+    description: '',
+    weight: '',
+    maxScore: '10'
+  });
+  const [selectedCriteria, setSelectedCriteria] = useState<string | null>(null);
+  const [showSubCriteriaForm, setShowSubCriteriaForm] = useState(false);
+  const [subCriteriaForm, setSubCriteriaForm] = useState({
+    name: '',
+    description: '',
+    weight: '',
+    maxScore: '10'
+  });
 
   // Form states
   const [eventForm, setEventForm] = useState({
@@ -50,13 +64,6 @@ export default function AdminPanel() {
     lastName: '',
     email: '',
     specialization: ''
-  });
-
-  const [criteriaForm, setCriteriaForm] = useState({
-    name: '',
-    description: '',
-    weight: '',
-    maxScore: '100'
   });
 
   // Redirect if not admin
@@ -251,24 +258,18 @@ export default function AdminPanel() {
     },
   });
 
-  // Mutation for creating criteria
   const createCriteriaMutation = useMutation({
     mutationFn: async (data: any) => {
-      await apiRequest('POST', `/api/events/${currentEventId}/criteria`, {
-        name: data.name,
-        description: data.description,
-        weight: data.weight,
-        maxScore: parseInt(data.maxScore)
-      });
+      await apiRequest('POST', `/api/events/${currentEventId}/criteria`, data);
     },
     onSuccess: () => {
       toast({
-        title: "Criteria created",
-        description: "Scoring criteria has been created successfully.",
+        title: "Success",
+        description: "Scoring criteria created successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
       setShowCriteriaForm(false);
-      setCriteriaForm({ name: '', description: '', weight: '', maxScore: '100' });
+      setCriteriaForm({ name: '', description: '', weight: '', maxScore: '10' });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -284,7 +285,40 @@ export default function AdminPanel() {
       }
       toast({
         title: "Error",
-        description: "Failed to create criteria. Please try again.",
+        description: "Failed to create scoring criteria.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createSubCriteriaMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await apiRequest('POST', `/api/criteria/${selectedCriteria}/sub-criteria`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Sub-criteria created successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/criteria', selectedCriteria, 'sub-criteria'] });
+      setShowSubCriteriaForm(false);
+      setSubCriteriaForm({ name: '', description: '', weight: '', maxScore: '10' });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to create sub-criteria.",
         variant: "destructive",
       });
     },

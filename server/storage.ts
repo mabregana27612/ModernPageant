@@ -4,6 +4,7 @@ import {
   contestants,
   judges,
   scoringCriteria,
+  subCriteria,
   phases,
   scores,
   type User,
@@ -16,6 +17,8 @@ import {
   type InsertJudge,
   type ScoringCriteria,
   type InsertScoringCriteria,
+  type SubCriteria,
+  type InsertSubCriteria,
   type Phase,
   type InsertPhase,
   type Score,
@@ -53,6 +56,12 @@ export interface IStorage {
   createScoringCriteria(criteria: InsertScoringCriteria): Promise<ScoringCriteria>;
   updateScoringCriteria(id: string, criteria: Partial<InsertScoringCriteria>): Promise<ScoringCriteria>;
   deleteScoringCriteria(id: string): Promise<void>;
+  
+  // Sub-criteria operations
+  getSubCriteria(criteriaId: string): Promise<SubCriteria[]>;
+  createSubCriteria(subCriteria: InsertSubCriteria): Promise<SubCriteria>;
+  updateSubCriteria(id: string, subCriteria: Partial<InsertSubCriteria>): Promise<SubCriteria>;
+  deleteSubCriteria(id: string): Promise<void>;
   
   // Phase operations
   getPhases(eventId: string): Promise<Phase[]>;
@@ -201,6 +210,32 @@ export class DatabaseStorage implements IStorage {
 
   async deleteScoringCriteria(id: string): Promise<void> {
     await db.delete(scoringCriteria).where(eq(scoringCriteria.id, id));
+  }
+
+  // Sub-criteria operations
+  async getSubCriteria(criteriaId: string): Promise<SubCriteria[]> {
+    return await db
+      .select()
+      .from(subCriteria)
+      .where(eq(subCriteria.criteriaId, criteriaId));
+  }
+
+  async createSubCriteria(subCriteriaData: InsertSubCriteria): Promise<SubCriteria> {
+    const [created] = await db.insert(subCriteria).values(subCriteriaData).returning();
+    return created;
+  }
+
+  async updateSubCriteria(id: string, subCriteriaData: Partial<InsertSubCriteria>): Promise<SubCriteria> {
+    const [updated] = await db
+      .update(subCriteria)
+      .set(subCriteriaData)
+      .where(eq(subCriteria.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteSubCriteria(id: string): Promise<void> {
+    await db.delete(subCriteria).where(eq(subCriteria.id, id));
   }
 
   // Phase operations

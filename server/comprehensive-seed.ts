@@ -227,6 +227,35 @@ async function seedComprehensiveData() {
 
     const createdCriteria = await db.insert(scoringCriteria).values(criteriaData).returning();
 
+    // Create sub-criteria for each main criteria
+    const subCriteriaData = [
+      // Interview sub-criteria (30% total)
+      { criteriaId: createdCriteria[0].id, name: "Communication Skills", description: "Clarity, articulation, and verbal expression", weight: 35, maxScore: 10 },
+      { criteriaId: createdCriteria[0].id, name: "Intelligence & Knowledge", description: "General knowledge and intellectual capacity", weight: 30, maxScore: 10 },
+      { criteriaId: createdCriteria[0].id, name: "Confidence & Poise", description: "Self-assurance and composure under pressure", weight: 25, maxScore: 10 },
+      { criteriaId: createdCriteria[0].id, name: "Personality & Charisma", description: "Natural charm and likability", weight: 10, maxScore: 10 },
+      
+      // Talent sub-criteria (25% total)
+      { criteriaId: createdCriteria[1].id, name: "Skill Level", description: "Technical proficiency and mastery", weight: 40, maxScore: 10 },
+      { criteriaId: createdCriteria[1].id, name: "Stage Presence", description: "Commanding attention and engagement", weight: 30, maxScore: 10 },
+      { criteriaId: createdCriteria[1].id, name: "Creativity & Originality", description: "Uniqueness and creative expression", weight: 20, maxScore: 10 },
+      { criteriaId: createdCriteria[1].id, name: "Overall Performance", description: "Entertainment value and execution", weight: 10, maxScore: 10 },
+      
+      // Evening Gown sub-criteria (25% total)
+      { criteriaId: createdCriteria[2].id, name: "Elegance & Grace", description: "Sophisticated movement and bearing", weight: 35, maxScore: 10 },
+      { criteriaId: createdCriteria[2].id, name: "Poise & Posture", description: "Confident stance and walk", weight: 30, maxScore: 10 },
+      { criteriaId: createdCriteria[2].id, name: "Gown Selection", description: "Appropriate choice and fit", weight: 25, maxScore: 10 },
+      { criteriaId: createdCriteria[2].id, name: "Overall Presentation", description: "Complete package and impression", weight: 10, maxScore: 10 },
+      
+      // Swimwear sub-criteria (20% total)
+      { criteriaId: createdCriteria[3].id, name: "Physical Fitness", description: "Health and conditioning", weight: 40, maxScore: 10 },
+      { criteriaId: createdCriteria[3].id, name: "Confidence", description: "Self-assurance and comfort", weight: 30, maxScore: 10 },
+      { criteriaId: createdCriteria[3].id, name: "Stage Presence", description: "Commanding the stage", weight: 20, maxScore: 10 },
+      { criteriaId: createdCriteria[3].id, name: "Overall Impression", description: "Complete presentation", weight: 10, maxScore: 10 },
+    ];
+
+    const createdSubCriteria = await db.insert(subCriteria).values(subCriteriaData).returning();
+
     // Create realistic scoring data for finals phase
     const scoreData = [];
     
