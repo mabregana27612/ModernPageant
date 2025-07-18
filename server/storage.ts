@@ -32,49 +32,49 @@ export interface IStorage {
   // User operations (IMPORTANT: mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
-  
+
   // Event operations
   getEvents(): Promise<Event[]>;
   getEvent(id: string): Promise<Event | undefined>;
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event>;
   deleteEvent(id: string): Promise<void>;
-  
+
   // Contestant operations
   getContestants(eventId: string): Promise<(Contestant & { user: User })[]>;
   getContestant(id: string): Promise<Contestant | undefined>;
   createContestant(contestant: InsertContestant): Promise<Contestant>;
   updateContestant(id: string, contestant: Partial<InsertContestant>): Promise<Contestant>;
-  
+
   // Judge operations
   getJudges(eventId: string): Promise<(Judge & { user: User })[]>;
   getJudge(id: string): Promise<Judge | undefined>;
   createJudge(judge: InsertJudge): Promise<Judge>;
-  
+
   // Scoring criteria operations
   getScoringCriteria(eventId: string): Promise<ScoringCriteria[]>;
   createScoringCriteria(criteria: InsertScoringCriteria): Promise<ScoringCriteria>;
   updateScoringCriteria(id: string, criteria: Partial<InsertScoringCriteria>): Promise<ScoringCriteria>;
   deleteScoringCriteria(id: string): Promise<void>;
-  
+
   // Sub-criteria operations
   getSubCriteria(criteriaId: string): Promise<SubCriteria[]>;
   createSubCriteria(subCriteria: InsertSubCriteria): Promise<SubCriteria>;
   updateSubCriteria(id: string, subCriteria: Partial<InsertSubCriteria>): Promise<SubCriteria>;
   deleteSubCriteria(id: string): Promise<void>;
-  
+
   // Phase operations
   getPhases(eventId: string): Promise<Phase[]>;
   createPhase(phase: InsertPhase): Promise<Phase>;
   updatePhase(id: string, phase: Partial<InsertPhase>): Promise<Phase>;
-  
+
   // Score operations
   getScores(eventId: string, phaseId?: string): Promise<(Score & { contestant: Contestant; judge: Judge; criteria: ScoringCriteria })[]>;
   createScore(score: InsertScore): Promise<Score>;
   updateScore(id: string, score: Partial<InsertScore>): Promise<Score>;
   getContestantScores(contestantId: string, phaseId: string): Promise<(Score & { criteria: ScoringCriteria })[]>;
   getJudgeScores(judgeId: string, phaseId: string): Promise<(Score & { contestant: Contestant; criteria: ScoringCriteria })[]>;
-  
+
   // Results operations
   getResults(eventId: string, phaseId: string): Promise<any[]>;
 }
@@ -136,7 +136,7 @@ export class DatabaseStorage implements IStorage {
       .from(contestants)
       .innerJoin(users, eq(contestants.userId, users.id))
       .where(eq(contestants.eventId, eventId));
-    
+
     return results.map(result => ({
       ...result.contestants,
       user: result.users
@@ -169,7 +169,7 @@ export class DatabaseStorage implements IStorage {
       .from(judges)
       .innerJoin(users, eq(judges.userId, users.id))
       .where(eq(judges.eventId, eventId));
-    
+
     return results.map(result => ({
       ...result.judges,
       user: result.users
@@ -275,7 +275,7 @@ export class DatabaseStorage implements IStorage {
 
     // Find current active phase
     const currentPhase = allPhases.find(p => p.status === 'active');
-    
+
     if (!currentPhase) {
       // If no active phase, activate the first one
       const firstPhase = allPhases[0];
@@ -284,7 +284,7 @@ export class DatabaseStorage implements IStorage {
         .set({ status: 'active' })
         .where(eq(phases.id, firstPhase.id))
         .returning();
-      
+
       // Update event's current phase
       await db
         .update(events)
@@ -383,7 +383,7 @@ export class DatabaseStorage implements IStorage {
       .from(scores)
       .innerJoin(scoringCriteria, eq(scores.criteriaId, scoringCriteria.id))
       .where(and(eq(scores.contestantId, contestantId), eq(scores.phaseId, phaseId)));
-    
+
     return results.map(result => ({
       ...result.scores,
       criteria: result.scoring_criteria
@@ -397,7 +397,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(contestants, eq(scores.contestantId, contestants.id))
       .innerJoin(scoringCriteria, eq(scores.criteriaId, scoringCriteria.id))
       .where(and(eq(scores.judgeId, judgeId), eq(scores.phaseId, phaseId)));
-    
+
     return results.map(result => ({
       ...result.scores,
       contestant: result.contestants,

@@ -39,6 +39,12 @@ export default function AdminPanel() {
     maxScore: '10'
   });
 
+  // Sub-criteria queries
+  const { data: subCriteriaData } = useQuery({
+    queryKey: ['/api/criteria', selectedCriteria, 'sub-criteria'],
+    enabled: !!selectedCriteria,
+  });
+
   // Form states
   const [eventForm, setEventForm] = useState({
     name: '',
@@ -319,6 +325,68 @@ export default function AdminPanel() {
       toast({
         title: "Error",
         description: "Failed to create sub-criteria.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateSubCriteriaMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      await apiRequest('PATCH', `/api/sub-criteria/${id}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Sub-criteria updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/criteria', selectedCriteria, 'sub-criteria'] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update sub-criteria.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteSubCriteriaMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest('DELETE', `/api/sub-criteria/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Sub-criteria deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/criteria', selectedCriteria, 'sub-criteria'] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete sub-criteria.",
         variant: "destructive",
       });
     },
@@ -652,47 +720,109 @@ export default function AdminPanel() {
               <CardContent>
                 <div className="space-y-4">
                   {criteria?.map((criterion) => (
-                    <div key={criterion.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium">{criterion.name}</span>
+                    <div key={criterion.id} className="border rounded-lg overflow-hidden">
+                      <div className="flex items-center justify-between p-4 bg-gray-50">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium">{criterion.name}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Label className="text-sm text-gray-600">Weight:</Label>
+                            <Input
+                              type="number"
+                              value={criterion.weight}
+                              min="0"
+                              max="100"
+                              className="w-16 text-center"
+                              onChange={(e) => {
+                                const weight = parseFloat(e.target.value);
+                                updateCriteriaMutation.mutate({
+                                  id: criterion.id,
+                                  data: { weight }
+                                });
+                              }}
+                            />
+                            <span className="text-sm text-gray-600">%</span>
+                          </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Label className="text-sm text-gray-600">Weight:</Label>
-                          <Input
-                            type="number"
-                            value={criterion.weight}
-                            min="0"
-                            max="100"
-                            className="w-16 text-center"
-                            onChange={(e) => {
-                              const weight = parseFloat(e.target.value);
-                              updateCriteriaMutation.mutate({
-                                id: criterion.id,
-                                data: { weight }
-                              });
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedCriteria(selectedCriteria === criterion.id ? null : criterion.id);
                             }}
-                          />
-                          <span className="text-sm text-gray-600">%</span>
+                          >
+                            {selectedCriteria === criterion.id ? 'Hide' : 'Manage'} Sub-Criteria
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => deleteCriteriaMutation.mutate(criterion.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Button size="sm" variant="ghost" onClick={() => {
-                          toast({
-                            title: "Feature Coming Soon",
-                            description: "Inline criteria editing will be available soon.",
-                          });
-                        }}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => deleteCriteriaMutation.mutate(criterion.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
+                      
+                      {/* Sub-criteria section */}
+                      {selectedCriteria === criterion.id && (
+                        <div className="p-4 bg-white border-t">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="font-medium text-gray-700">Sub-Criteria for {criterion.name}</h4>
+                            <Button 
+                              size="sm" 
+                              onClick={() => setShowSubCriteriaForm(true)}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Sub-Criteria
+                            </Button>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            {subCriteriaData?.map((subCriterion: any) => (
+                              <div key={subCriterion.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="flex items-center space-x-4">
+                                  <span className="text-sm font-medium">{subCriterion.name}</span>
+                                  <div className="flex items-center space-x-2">
+                                    <Label className="text-xs text-gray-600">Weight:</Label>
+                                    <Input
+                                      type="number"
+                                      value={subCriterion.weight}
+                                      min="0"
+                                      max="100"
+                                      className="w-14 text-center text-xs"
+                                      onChange={(e) => {
+                                        const weight = parseFloat(e.target.value);
+                                        updateSubCriteriaMutation.mutate({
+                                          id: subCriterion.id,
+                                          data: { weight }
+                                        });
+                                      }}
+                                    />
+                                    <span className="text-xs text-gray-600">%</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost"
+                                    onClick={() => deleteSubCriteriaMutation.mutate(subCriterion.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3 text-red-500" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                            
+                            {(!subCriteriaData || subCriteriaData.length === 0) && (
+                              <div className="text-center py-4 text-gray-500 text-sm">
+                                No sub-criteria defined yet. Add some to break down this scoring category.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1255,6 +1385,71 @@ export default function AdminPanel() {
                       {createCriteriaMutation.isPending ? 'Creating...' : 'Create Criteria'}
                     </Button>
                     <Button variant="outline" onClick={() => setShowCriteriaForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Create Sub-Criteria Form Modal */}
+        {showSubCriteriaForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle>Add Sub-Criteria</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="sub-criteria-name">Name</Label>
+                    <Input
+                      id="sub-criteria-name"
+                      value={subCriteriaForm.name}
+                      onChange={(e) => setSubCriteriaForm({ ...subCriteriaForm, name: e.target.value })}
+                      placeholder="e.g., Communication Skills, Poise"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="sub-criteria-description">Description</Label>
+                    <Textarea
+                      id="sub-criteria-description"
+                      value={subCriteriaForm.description}
+                      onChange={(e) => setSubCriteriaForm({ ...subCriteriaForm, description: e.target.value })}
+                      placeholder="e.g., Clarity, articulation, and verbal expression"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="sub-criteria-weight">Weight (%)</Label>
+                    <Input
+                      id="sub-criteria-weight"
+                      type="number"
+                      value={subCriteriaForm.weight}
+                      onChange={(e) => setSubCriteriaForm({ ...subCriteriaForm, weight: e.target.value })}
+                      placeholder="e.g., 35"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="sub-criteria-maxScore">Max Score</Label>
+                    <Input
+                      id="sub-criteria-maxScore"
+                      type="number"
+                      value={subCriteriaForm.maxScore}
+                      onChange={(e) => setSubCriteriaForm({ ...subCriteriaForm, maxScore: e.target.value })}
+                      placeholder="10"
+                    />
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button 
+                      onClick={() => createSubCriteriaMutation.mutate(subCriteriaForm)}
+                      disabled={createSubCriteriaMutation.isPending}
+                    >
+                      {createSubCriteriaMutation.isPending ? 'Creating...' : 'Create Sub-Criteria'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowSubCriteriaForm(false)}>
                       Cancel
                     </Button>
                   </div>
