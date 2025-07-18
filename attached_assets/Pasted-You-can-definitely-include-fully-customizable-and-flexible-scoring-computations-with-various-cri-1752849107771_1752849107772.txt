@@ -1,0 +1,61 @@
+You can definitely include **fully customizable and flexible scoring computations** with various criteria in your pageant system, including options for:
+
+- **Weighted scoring** (assigning different weights or percentages to criteria),
+- **Averaging scores** across judges and categories,
+- **Raw score totals**,
+- **Ranking-based scoring**, and
+- **Resetting scores to zero for a top 5 finalist round** (restarting the scoring computation in later competition phases).
+
+This aligns with well-established pageant scoring methodologies, where multiple categories are scored, weighted, and combined for final results, and the scoring system resets or switches methods at specific stages like the top 5 finalists[1][2][3][5][6].
+
+### How to describe this requirement for your Replit project prompt
+
+Add this section to your earlier prompt to specify **custom computation and dynamic criteria creation**:
+
+### ⚙️ Customizable Scoring & Criteria Computation
+
+- Provide event organizers/admins the ability to **define any number of competition criteria/categories** (e.g., Interview, Talent, Evening Gown, On-Stage Question)
+- Allow **weight assignments per criterion** (e.g., Interview 30%, Talent 40%, Evening Gown 30%)
+- Support different scoring methods for each competition phase:
+  - **Averaging** scores from multiple judges per criterion
+  - **Weighted sum** of category scores for the total contestant score
+  - **Raw score total** option (sum scores without weight)
+  - **Ranking method** (assign points based on judges’ rankings)
+- Ability to **reset/zero scores at a particular round/stage**, e.g. after preliminaries and before top 5
+  - Scores from earlier rounds can be archived but excluded from final calculation
+  - Top 5 scoring uses fresh criteria or a different computation method
+- Configurable **tie-breaking rules**, e.g., by prioritized categories such as Interview then Talent
+- Display **score breakdowns** per contestant for transparency
+
+### How this fits into the system:
+
+- **Admin panel** to build and adjust competition criteria and weights dynamically per event
+- **Judges’ interfaces** to input scores per category
+- **Backend logic** that calculates final contestant scores following the selected computation method for each event phase
+- **Frontend display** to show score summaries, rankings, and analytics with detailed component-wise data
+
+### Updated Replit prompt excerpt including this:
+
+> Extend the pageant system backend and admin UI to allow **fully customizable scoring criteria and computation methods**:
+> - Admins can add/edit/remove scoring categories with adjustable weights
+> - Support averaging, weighted sums, raw totals, and ranking-based calculations
+> - Include an option to **reset scores to zero** before final rounds such as the top 5, discarding prior scores for the final tally
+> - Handle tie-breaks using prioritized criteria
+> - Present detailed scoring breakdowns and overall rankings in real-time
+>  
+> Combine this with Facebook engagement voting, Google email notifications, and interactive analytics dashboards for a complete, professional pageant solution.
+
+This approach follows proven pageant judging methods while offering flexibility for different contest rules and phases[1][2][3][5][6].
+
+If you want, I can help you with example code or data models next!
+
+[1] https://www.pageantplanet.com/article/how-do-judges-score-beauty-pageants
+[2] https://carmenscoring.com/scoring-methods
+[3] https://www.scribd.com/document/619968934/JUDGING-AND-SCORING
+[4] https://cdn.prod.website-files.com/660028f25ab8df72ce611146/66f6c6d0f44d8e6b32e3aaca_99546913424.pdf
+[5] https://nykdaily.com/2021/03/how-do-judges-score-beauty-pageants/
+[6] http://vierzig.cfan.eu/files/textbook-solutions/PDF_Files:M0K1/_pdfs/Pageant-Program.pdf
+[7] https://irp.cdn-website.com/93595b47/files/uploaded/kukidapawop.pdf
+[8] https://www.scribd.com/document/430773659/Revise-Chapter-1
+[9] https://www.westindiansocialclub.org/scholarship-pageant/event-info/categories-judging-scoring/
+[10] https://www.youtube.com/watch?v=hWzy0lyoJ0g
