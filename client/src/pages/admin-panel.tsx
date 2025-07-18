@@ -926,7 +926,8 @@ export default function AdminPanel() {
           <TabsContent value="events">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center                  <CardTitle>Event Management</CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Event Management</CardTitle>
                   <Button onClick={() => setShowEventForm(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Create New Event
