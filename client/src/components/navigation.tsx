@@ -10,6 +10,7 @@ export default function Navigation() {
 
   const navItems = [
     { href: "/", label: "Home", active: location === "/" },
+    { href: "/contestants", label: "Contestants", active: location === "/contestants" },
     { href: "/contests", label: "Contests", active: location === "/contests" },
     { href: "/judge", label: "Dashboard", active: location === "/judge" },
     { href: "/results", label: "Results", active: location === "/results" },
@@ -42,7 +43,7 @@ export default function Navigation() {
               </div>
             </div>
           </div>
-          
+
           {isAuthenticated ? (
             <div className="hidden md:block">
               <div className="ml-4 flex items-center md:ml-6">
@@ -82,7 +83,7 @@ export default function Navigation() {
               </Button>
             </div>
           )}
-          
+
           <div className="md:hidden">
             <Button variant="ghost" size="sm" className="p-2">
               <Menu className="h-5 w-5" />
