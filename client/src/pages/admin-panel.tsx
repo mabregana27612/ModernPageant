@@ -764,7 +764,7 @@ export default function AdminPanel() {
 
   const handleCreatePhase = () => {
     if (!currentEventId) return;
-    
+
     const nextOrder = phases && phases.length > 0 ? Math.max(...phases.map(p => p.order)) + 1 : 1;
     setPhaseForm({ ...phaseForm, order: nextOrder.toString() });
     setEditingPhase(null);
@@ -790,13 +790,13 @@ export default function AdminPanel() {
 
   const handleMovePhase = (phaseId: string, direction: 'up' | 'down') => {
     if (!phases) return;
-    
+
     const currentPhase = phases.find(p => p.id === phaseId);
     if (!currentPhase) return;
-    
+
     const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
     const currentIndex = sortedPhases.findIndex(p => p.id === phaseId);
-    
+
     if (direction === 'up' && currentIndex > 0) {
       const phaseOrders = [
         { id: sortedPhases[currentIndex].id, order: sortedPhases[currentIndex - 1].order },
@@ -925,7 +925,7 @@ export default function AdminPanel() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {criteria?.map((criterion) => (
+                  {shows?.map((criterion) => (
                     <div key={criterion.id} className="border rounded-lg overflow-hidden">
                       <div className="flex items-center justify-between p-4 bg-gray-50">
                         <div className="flex items-center space-x-4">
@@ -934,7 +934,7 @@ export default function AdminPanel() {
                           </div>
                           <div className="flex items-center space-x-2">
                             <Label className="text-sm text-gray-600">Weight:</Label>
-                            <Input
+                            <Input```
                               type="number"
                               value={criterion.weight}
                               min="0"
@@ -1826,6 +1826,7 @@ export default function AdminPanel() {
                     <Label htmlFor="phase-order">Order</Label>
                     <Input
                       id="phase-order"
+                      ```javascript
                       type="number"
                       value={phaseForm.order}
                       onChange={(e) => setPhaseForm({ ...phaseForm, order: e.target.value })}
