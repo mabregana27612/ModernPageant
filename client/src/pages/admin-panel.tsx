@@ -30,14 +30,7 @@ export default function AdminPanel() {
     weight: '',
     maxScore: '10'
   });
-  const [selectedCriteria, setSelectedCriteria] = useState<string | null>(null);
-  const [showSubCriteriaForm, setShowSubCriteriaForm] = useState(false);
-  const [subCriteriaForm, setSubCriteriaForm] = useState({
-    name: '',
-    description: '',
-    weight: '',
-    maxScore: '10'
-  });
+  const [selectedShow, setSelectedShow] = useState<string | null>(null);
   const [showCriteriaForm, setShowCriteriaForm] = useState(false);
   const [criteriaForm, setCriteriaForm] = useState({
     name: '',
@@ -56,8 +49,8 @@ export default function AdminPanel() {
 
   // Criteria queries for selected show
   const { data: criteriaData } = useQuery({
-    queryKey: ['/api/shows', selectedCriteria, 'criteria'],
-    enabled: !!selectedCriteria,
+    queryKey: ['/api/shows', selectedShow, 'criteria'],
+    enabled: !!selectedShow,
   });
 
   // Form states
@@ -279,9 +272,10 @@ export default function AdminPanel() {
     },
   });
 
-  const createCriteriaMutation = useMutation({
+  // Show creation mutation
+  const createShowMutation = useMutation({
     mutationFn: async (data: any) => {
-      await apiRequest('POST', `/api/events/${currentEventId}/criteria`, data);
+      await apiRequest('POST', `/api/events/${currentEventId}/shows`, data);
     },
     onSuccess: () => {
       toast({
@@ -289,7 +283,40 @@ export default function AdminPanel() {
         description: "Show created successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'shows'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
+      setShowShowForm(false);
+      setShowForm({ name: '', description: '', weight: '', maxScore: '10' });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to create show.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Criteria mutations for Shows/Criteria structure
+  const createCriteriaMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await apiRequest('POST', `/api/shows/${selectedShow}/criteria`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Criteria created successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/shows', selectedShow, 'criteria'] });
       setShowCriteriaForm(false);
       setCriteriaForm({ name: '', description: '', weight: '', maxScore: '10' });
     },
@@ -307,134 +334,7 @@ export default function AdminPanel() {
       }
       toast({
         title: "Error",
-        description: "Failed to create scoring criteria.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const createSubCriteriaMutation = useMutation({
-    mutationFn: async (data: any) => {
-      await apiRequest('POST', `/api/criteria/${selectedCriteria}/sub-criteria`, data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Sub-criteria created successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/criteria', selectedCriteria, 'sub-criteria'] });
-      setShowSubCriteriaForm(false);
-      setSubCriteriaForm({ name: '', description: '', weight: '', maxScore: '10' });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to create sub-criteria.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateSubCriteriaMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      await apiRequest('PATCH', `/api/sub-criteria/${id}`, data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Sub-criteria updated successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/criteria', selectedCriteria, 'sub-criteria'] });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to update sub-criteria.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const deleteSubCriteriaMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await apiRequest('DELETE', `/api/sub-criteria/${id}`);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Sub-criteria deleted successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/criteria', selectedCriteria, 'sub-criteria'] });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to delete sub-criteria.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateCriteriaMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      await apiRequest('PATCH', `/api/events/${currentEventId}/criteria/${id}`, data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Show updated",
-        description: "Show has been updated successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'shows'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to update criteria. Please try again.",
+        description: "Failed to create criteria.",
         variant: "destructive",
       });
     },
@@ -442,15 +342,14 @@ export default function AdminPanel() {
 
   const deleteCriteriaMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest('DELETE', `/api/events/${currentEventId}/criteria/${id}`);
+      await apiRequest('DELETE', `/api/criteria/${id}`);
     },
     onSuccess: () => {
       toast({
-        title: "Show deleted",
-        description: "Show has been deleted successfully.",
+        title: "Success",
+        description: "Criteria deleted successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'shows'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/shows', selectedShow, 'criteria'] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -466,7 +365,38 @@ export default function AdminPanel() {
       }
       toast({
         title: "Error",
-        description: "Failed to delete criteria. Please try again.",
+        description: "Failed to delete criteria.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteShowMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest('DELETE', `/api/shows/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Show deleted",
+        description: "Show has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'shows'] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete show. Please try again.",
         variant: "destructive",
       });
     },
@@ -967,64 +897,54 @@ export default function AdminPanel() {
                             size="sm" 
                             variant="outline"
                             onClick={() => {
-                              setSelectedCriteria(selectedCriteria === criterion.id ? null : criterion.id);
+                              setSelectedShow(selectedShow === criterion.id ? null : criterion.id);
                             }}
                           >
-                            {selectedCriteria === criterion.id ? 'Hide' : 'Manage'} Sub-Criteria
+                            {selectedShow === criterion.id ? 'Hide' : 'Manage'} Criteria
                           </Button>
                           <Button 
                             size="sm" 
                             variant="ghost"
-                            onClick={() => deleteCriteriaMutation.mutate(criterion.id)}
+                            onClick={() => deleteShowMutation.mutate(criterion.id)}
                           >
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
                         </div>
                       </div>
 
-                      {/* Sub-criteria section */}
-                      {selectedCriteria === criterion.id && (
+                      {/* Criteria section for selected show */}
+                      {selectedShow === criterion.id && (
                         <div className="p-4 bg-white border-t">
                           <div className="flex items-center justify-between mb-4">
-                            <h4 className="font-medium text-gray-700">Sub-Criteria for {criterion.name}</h4>
+                            <h4 className="font-medium text-gray-700">Individual Criteria for {criterion.name}</h4>
                             <Button 
                               size="sm" 
-                              onClick={() => setShowSubCriteriaForm(true)}
+                              onClick={() => setShowCriteriaForm(true)}
                             >
                               <Plus className="h-4 w-4 mr-2" />
-                              Add Sub-Criteria
+                              Add Criteria
                             </Button>
                           </div>
 
                           <div className="space-y-2">
-                            {subCriteriaData?.map((subCriterion: any) => (
-                              <div key={subCriterion.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            {criteriaData?.map((criteria: any) => (
+                              <div key={criteria.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                 <div className="flex items-center space-x-4">
-                                  <span className="text-sm font-medium">{subCriterion.name}</span>
+                                  <span className="text-sm font-medium">{criteria.name}</span>
                                   <div className="flex items-center space-x-2">
                                     <Label className="text-xs text-gray-600">Weight:</Label>
-                                    <Input
-                                      type="number"
-                                      value={subCriterion.weight}
-                                      min="0"
-                                      max="100"
-                                      className="w-14 text-center text-xs"
-                                      onChange={(e) => {
-                                        const weight = parseFloat(e.target.value);
-                                        updateSubCriteriaMutation.mutate({
-                                          id: subCriterion.id,
-                                          data: { weight }
-                                        });
-                                      }}
-                                    />
-                                    <span className="text-xs text-gray-600">%</span>
+                                    <span className="text-xs text-gray-700">{criteria.weight}%</span>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <Label className="text-xs text-gray-600">Max:</Label>
+                                    <span className="text-xs text-gray-700">{criteria.maxScore}</span>
                                   </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <Button 
                                     size="sm" 
                                     variant="ghost"
-                                    onClick={() => deleteSubCriteriaMutation.mutate(subCriterion.id)}
+                                    onClick={() => deleteCriteriaMutation.mutate(criteria.id)}
                                   >
                                     <Trash2 className="h-3 w-3 text-red-500" />
                                   </Button>
@@ -1032,7 +952,7 @@ export default function AdminPanel() {
                               </div>
                             ))}
 
-                            {(!subCriteriaData || subCriteriaData.length === 0) && (
+                            {(!criteriaData || criteriaData.length === 0) && (
                               <div className="text-center py-4 text-gray-500 text-sm">
                                 No criteria defined yet. Add some to break down this show category.
                               </div>
@@ -1740,70 +1660,7 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* Create Sub-Criteria Form Modal */}
-        {showSubCriteriaForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md">
-              <CardHeader>
-                <CardTitle>Add Sub-Criteria</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="sub-criteria-name">Name</Label>
-                    <Input
-                      id="sub-criteria-name"
-                      value={subCriteriaForm.name}
-                      onChange={(e) => setSubCriteriaForm({ ...subCriteriaForm, name: e.target.value })}
-                      placeholder="e.g., Communication Skills, Poise"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="sub-criteria-description">Description</Label>
-                    <Textarea
-                      id="sub-criteria-description"
-                      value={subCriteriaForm.description}
-                      onChange={(e) => setSubCriteriaForm({ ...subCriteriaForm, description: e.target.value })}
-                      placeholder="e.g., Clarity, articulation, and verbal expression"
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="sub-criteria-weight">Weight (%)</Label>
-                    <Input
-                      id="sub-criteria-weight"
-                      type="number"
-                      value={subCriteriaForm.weight}
-                      onChange={(e) => setSubCriteriaForm({ ...subCriteriaForm, weight: e.target.value })}
-                      placeholder="e.g., 35"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="sub-criteria-maxScore">Max Score</Label>
-                    <Input
-                      id="sub-criteria-maxScore"
-                      type="number"
-                      value={subCriteriaForm.maxScore}
-                      onChange={(e) => setSubCriteriaForm({ ...subCriteriaForm, maxScore: e.target.value })}
-                      placeholder="10"
-                    />
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button 
-                      onClick={() => createSubCriteriaMutation.mutate(subCriteriaForm)}
-                      disabled={createSubCriteriaMutation.isPending}
-                    >
-                      {createSubCriteriaMutation.isPending ? 'Creating...' : 'Create Sub-Criteria'}
-                    </Button>
-                    <Button variant="outline" onClick={() => setShowSubCriteriaForm(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        {/* This modal was removed - replaced with individual criteria management */}
 
         {/* Create/Edit Phase Form Modal */}
         {showPhaseForm && (
