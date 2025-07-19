@@ -125,7 +125,6 @@ export default function JudgeDashboard() {
     scoreMutation.mutate({
       contestantId,
       criteriaId,
-      judgeId: user?.id,
       phaseId: activePhase.id,
       score,
     });

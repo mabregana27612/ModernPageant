@@ -232,6 +232,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(criteria.showId, showId));
   }
 
+  async getAllCriteria(): Promise<Criteria[]> {
+    return await db
+      .select()
+      .from(criteria);
+  }
+
   async createCriteria(criteriaData: InsertCriteria): Promise<Criteria> {
     const [created] = await db.insert(criteria).values(criteriaData).returning();
     return created;
@@ -377,13 +383,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Score operations
-  async getScores(eventId: string, phaseId?: string): Promise<(Score & { contestant: Contestant; judge: Judge; criteria: ScoringCriteria })[]> {
+  async getScores(eventId: string, phaseId?: string): Promise<(Score & { contestant: Contestant; judge: Judge; criteria: Criteria })[]> {
     const baseQuery = db
       .select()
       .from(scores)
       .innerJoin(contestants, eq(scores.contestantId, contestants.id))
       .innerJoin(judges, eq(scores.judgeId, judges.id))
-      .innerJoin(scoringCriteria, eq(scores.criteriaId, scoringCriteria.id));
+      .innerJoin(criteria, eq(scores.criteriaId, criteria.id));
 
     const results = phaseId
       ? await baseQuery.where(and(eq(scores.eventId, eventId), eq(scores.phaseId, phaseId)))
@@ -393,7 +399,7 @@ export class DatabaseStorage implements IStorage {
       ...result.scores,
       contestant: result.contestants,
       judge: result.judges,
-      criteria: result.scoring_criteria
+      criteria: result.criteria
     }));
   }
 
@@ -411,31 +417,31 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async getContestantScores(contestantId: string, phaseId: string): Promise<(Score & { criteria: ScoringCriteria })[]> {
+  async getContestantScores(contestantId: string, phaseId: string): Promise<(Score & { criteria: Criteria })[]> {
     const results = await db
       .select()
       .from(scores)
-      .innerJoin(scoringCriteria, eq(scores.criteriaId, scoringCriteria.id))
+      .innerJoin(criteria, eq(scores.criteriaId, criteria.id))
       .where(and(eq(scores.contestantId, contestantId), eq(scores.phaseId, phaseId)));
 
     return results.map(result => ({
       ...result.scores,
-      criteria: result.scoring_criteria
+      criteria: result.criteria
     }));
   }
 
-  async getJudgeScores(judgeId: string, phaseId: string): Promise<(Score & { contestant: Contestant; criteria: ScoringCriteria })[]> {
+  async getJudgeScores(judgeId: string, phaseId: string): Promise<(Score & { contestant: Contestant; criteria: Criteria })[]> {
     const results = await db
       .select()
       .from(scores)
       .innerJoin(contestants, eq(scores.contestantId, contestants.id))
-      .innerJoin(scoringCriteria, eq(scores.criteriaId, scoringCriteria.id))
+      .innerJoin(criteria, eq(scores.criteriaId, criteria.id))
       .where(and(eq(scores.judgeId, judgeId), eq(scores.phaseId, phaseId)));
 
     return results.map(result => ({
       ...result.scores,
       contestant: result.contestants,
-      criteria: result.scoring_criteria
+      criteria: result.criteria
     }));
   }
 
@@ -446,16 +452,16 @@ export class DatabaseStorage implements IStorage {
         contestantId: contestants.id,
         contestantNumber: contestants.contestantNumber,
         user: users,
-        totalScore: sql<number>`SUM(${scores.score} * ${scoringCriteria.weight} / 100)`,
-        scores: sql<any>`json_agg(json_build_object('criteria', ${scoringCriteria.name}, 'score', ${scores.score}, 'weight', ${scoringCriteria.weight}))`,
+        totalScore: sql<number>`SUM(${scores.score} * ${criteria.weight} / 100)`,
+        scores: sql<any>`json_agg(json_build_object('criteria', ${criteria.name}, 'score', ${scores.score}, 'weight', ${criteria.weight}))`,
       })
       .from(scores)
       .innerJoin(contestants, eq(scores.contestantId, contestants.id))
       .innerJoin(users, eq(contestants.userId, users.id))
-      .innerJoin(scoringCriteria, eq(scores.criteriaId, scoringCriteria.id))
+      .innerJoin(criteria, eq(scores.criteriaId, criteria.id))
       .where(and(eq(scores.eventId, eventId), eq(scores.phaseId, phaseId)))
       .groupBy(contestants.id, contestants.contestantNumber, users.id, users.firstName, users.lastName, users.profileImageUrl)
-      .orderBy(desc(sql`SUM(${scores.score} * ${scoringCriteria.weight} / 100)`));
+      .orderBy(desc(sql`SUM(${scores.score} * ${criteria.weight} / 100)`));
 
     return results;
   }

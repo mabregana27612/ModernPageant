@@ -380,14 +380,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/events/:eventId/scores', isAuthenticated, async (req, res) => {
     try {
+      // Get or create judge record for current user
+      const judges = await storage.getJudges(req.params.eventId);
+      let judge = judges.find(j => j.userId === req.user.id);
+      
+      if (!judge) {
+        // Create judge record if it doesn't exist
+        judge = await storage.createJudge({
+          eventId: req.params.eventId,
+          userId: req.user.id,
+          specialization: "Judge"
+        });
+      }
+
+      // Get the show ID from criteria
+      const allCriteria = await storage.getAllCriteria();
+      const criteria = allCriteria.find(c => c.id === req.body.criteriaId);
+      if (!criteria) {
+        return res.status(400).json({ message: "Criteria not found" });
+      }
+
       const validatedData = insertScoreSchema.parse({
         ...req.body,
         eventId: req.params.eventId,
+        judgeId: judge.id,
+        showId: criteria.showId,
       });
+      
       const score = await storage.createScore(validatedData);
       res.status(201).json(score);
     } catch (error) {
       console.error("Error creating score:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.issues.map(issue => ({
+            field: issue.path.join('.'),
+            message: issue.message
+          }))
+        });
+      }
       res.status(500).json({ message: "Failed to create score" });
     }
   });
