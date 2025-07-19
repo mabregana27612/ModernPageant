@@ -38,6 +38,13 @@ export default function AdminPanel() {
     weight: '',
     maxScore: '10'
   });
+  const [showCriteriaForm, setShowCriteriaForm] = useState(false);
+  const [criteriaForm, setCriteriaForm] = useState({
+    name: '',
+    description: '',
+    weight: '',
+    maxScore: '10'
+  });
   const [showPhaseForm, setShowPhaseForm] = useState(false);
   const [editingPhase, setEditingPhase] = useState<Phase | null>(null);
   const [phaseForm, setPhaseForm] = useState({
@@ -934,7 +941,7 @@ export default function AdminPanel() {
                           </div>
                           <div className="flex items-center space-x-2">
                             <Label className="text-sm text-gray-600">Weight:</Label>
-                            <Input```
+                            <Input
                               type="number"
                               value={criterion.weight}
                               min="0"
@@ -1826,7 +1833,6 @@ export default function AdminPanel() {
                     <Label htmlFor="phase-order">Order</Label>
                     <Input
                       id="phase-order"
-                      ```javascript
                       type="number"
                       value={phaseForm.order}
                       onChange={(e) => setPhaseForm({ ...phaseForm, order: e.target.value })}
