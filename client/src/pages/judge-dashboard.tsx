@@ -58,6 +58,20 @@ export default function JudgeDashboard() {
     enabled: !!selectedEvent,
   });
 
+  const { data: scoringProgress } = useQuery<{
+    totalRequired: number;
+    completed: number;
+    progress: number;
+    remainingContestants: number;
+    remainingCriteria: number;
+    activePhase: string;
+    activeShow: string;
+  }>({
+    queryKey: ['/api/events', selectedEvent, 'scoring-progress'],
+    enabled: !!selectedEvent,
+    refetchInterval: 5000, // Refresh every 5 seconds
+  });
+
   const scoreMutation = useMutation({
     mutationFn: async (scoreData: any) => {
       await apiRequest('POST', `/api/events/${selectedEvent}/scores`, scoreData);
@@ -223,6 +237,47 @@ export default function JudgeDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Scoring Progress */}
+        {scoringProgress && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Scoring Progress</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-1">
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                    <div 
+                      className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                      style={{ width: `${scoringProgress.progress}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <span className="text-lg font-medium">{scoringProgress.progress}%</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Completed:</span> {scoringProgress.completed}/{scoringProgress.totalRequired}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Phase:</span> {scoringProgress.activePhase}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Show:</span> {scoringProgress.activeShow}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Remaining:</span> {scoringProgress.totalRequired - scoringProgress.completed}
+                </div>
+              </div>
+              {scoringProgress.progress === 100 && (
+                <div className="mt-4 p-3 bg-green-100 dark:bg-green-900 rounded text-green-800 dark:text-green-200">
+                  ✅ All scoring completed for this phase! Ready for next phase.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Current Show and Criteria */}
         {currentShow && (
           <Card className="mb-6">
