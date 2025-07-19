@@ -19,6 +19,7 @@ export default function JudgeDashboard() {
   const [selectedEvent, setSelectedEvent] = useState<string>("");
   const [scores, setScores] = useState<Record<string, number>>({});
   const [currentContestantIndex, setCurrentContestantIndex] = useState(0);
+  const [currentShowIndex, setCurrentShowIndex] = useState(0);
   const [currentCriteriaIndex, setCurrentCriteriaIndex] = useState(0);
 
   const { data: events } = useQuery<Event[]>({
@@ -30,17 +31,19 @@ export default function JudgeDashboard() {
     enabled: !!selectedEvent,
   });
 
-  const { data: shows } = useQuery<ScoringCriteria[]>({
-    queryKey: ['/api/events', selectedEvent, 'criteria'],
+  const { data: shows } = useQuery<any[]>({
+    queryKey: ['/api/events', selectedEvent, 'shows'],
     enabled: !!selectedEvent,
   });
 
-  const currentShow = shows?.[currentCriteriaIndex];
+  const currentShow = shows?.[currentShowIndex];
 
-  const { data: criteria } = useQuery<SubCriteria[]>({
-    queryKey: ['/api/criteria', currentShow?.id, 'sub-criteria'],
+  const { data: criteria } = useQuery<any[]>({
+    queryKey: ['/api/shows', currentShow?.id, 'criteria'],
     enabled: !!currentShow?.id,
   });
+
+  const currentCriteria = criteria?.[currentCriteriaIndex];
 
   const { data: phases } = useQuery<Phase[]>({
     queryKey: ['/api/events', selectedEvent, 'phases'],
@@ -124,12 +127,26 @@ export default function JudgeDashboard() {
   };
 
   const handleNextShow = () => {
-    if (shows && currentCriteriaIndex < shows.length - 1) {
-      setCurrentCriteriaIndex(prev => prev + 1);
+    if (shows && currentShowIndex < shows.length - 1) {
+      setCurrentShowIndex(prev => prev + 1);
+      setCurrentCriteriaIndex(0); // Reset to first criteria when changing shows
     }
   };
 
   const handlePrevShow = () => {
+    if (currentShowIndex > 0) {
+      setCurrentShowIndex(prev => prev - 1);
+      setCurrentCriteriaIndex(0); // Reset to first criteria when changing shows
+    }
+  };
+
+  const handleNextCriteria = () => {
+    if (criteria && currentCriteriaIndex < criteria.length - 1) {
+      setCurrentCriteriaIndex(prev => prev + 1);
+    }
+  };
+
+  const handlePrevCriteria = () => {
     if (currentCriteriaIndex > 0) {
       setCurrentCriteriaIndex(prev => prev - 1);
     }
@@ -190,24 +207,53 @@ export default function JudgeDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Scoring Categories */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Scoring Categories</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {criteria?.map((criterion) => (
-                <div key={criterion.id} className="bg-primary/5 p-4 rounded-lg border border-primary/10">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{criterion.weight}%</div>
-                    <div className="text-sm text-gray-600">{criterion.name}</div>
-                  </div>
+        {/* Current Show and Criteria */}
+        {currentShow && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Current Show: {currentShow.name}</span>
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handlePrevShow}
+                    disabled={currentShowIndex === 0}
+                  >
+                    Prev Show
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleNextShow}
+                    disabled={currentShowIndex >= (shows?.length || 1) - 1}
+                  >
+                    Next Show
+                  </Button>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {criteria?.map((criterion, index) => (
+                  <div 
+                    key={criterion.id} 
+                    className={`p-4 rounded-lg border transition-colors ${
+                      index === currentCriteriaIndex 
+                        ? 'bg-primary/20 border-primary' 
+                        : 'bg-primary/5 border-primary/10'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary">{criterion.weight}%</div>
+                      <div className="text-sm text-gray-600">{criterion.name}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Sequential Scoring Interface */}
         {contestants && contestants.length > 0 && criteria && criteria.length > 0 && (
@@ -276,88 +322,75 @@ export default function JudgeDashboard() {
               </Card>
 
               {/* Scoring Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>{currentCriteria?.name}</span>
-                    <Badge>{currentCriteria?.weight}%</Badge>
-                  </CardTitle>
-                  <p className="text-gray-600">{currentCriteria?.description}</p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Sub-criteria if available */}
-                  {subCriteria && subCriteria.length > 0 && (
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <h4 className="font-medium mb-2">Sub-criteria breakdown:</h4>
-                      <div className="space-y-1 text-sm text-gray-600">
-                        {subCriteria.map((sub) => (
-                          <div key={sub.id} className="flex justify-between">
-                            <span>• {sub.name}</span>
-                            <span>{sub.weight}%</span>
-                          </div>
-                        ))}
+              {currentCriteria && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>{currentCriteria.name}</span>
+                      <Badge>{currentCriteria.weight}%</Badge>
+                    </CardTitle>
+                    <p className="text-gray-600">{currentCriteria.description}</p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Score Input */}
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-4">
+                        <Label className="text-lg font-medium">Score:</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max={currentCriteria.maxScore || 10}
+                          value={scores[`${contestants[currentContestantIndex].id}-${currentCriteria.id}`] || ''}
+                          onChange={(e) => setScores(prev => ({
+                            ...prev,
+                            [`${contestants[currentContestantIndex].id}-${currentCriteria.id}`]: parseInt(e.target.value) || 0
+                          }))}
+                          className="w-24 text-center text-lg"
+                          placeholder={`1-${currentCriteria.maxScore || 10}`}
+                        />
+                        <span className="text-lg text-gray-500">/{currentCriteria.maxScore || 10}</span>
                       </div>
-                    </div>
-                  )}
 
-                  {/* Score Input */}
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-4">
-                      <Label className="text-lg font-medium">Score:</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={scores[`${contestants[currentContestantIndex].id}-${currentCriteria?.id}`] || ''}
-                        onChange={(e) => setScores(prev => ({
-                          ...prev,
-                          [`${contestants[currentContestantIndex].id}-${currentCriteria?.id}`]: parseInt(e.target.value) || 0
-                        }))}
-                        className="w-24 text-center text-lg"
-                        placeholder="1-10"
-                      />
-                      <span className="text-lg text-gray-500">/10</span>
+                      <Button
+                        onClick={() => handleScoreSubmit(contestants[currentContestantIndex].id, currentCriteria.id)}
+                        className="w-full"
+                        disabled={scoreMutation.isPending}
+                        size="lg"
+                      >
+                        {scoreMutation.isPending ? (
+                          <Clock className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                        )}
+                        Submit Score for {currentCriteria.name}
+                      </Button>
                     </div>
 
-                    <Button
-                      onClick={() => handleScoreSubmit(contestants[currentContestantIndex].id, currentCriteria?.id || '')}
-                      className="w-full"
-                      disabled={scoreMutation.isPending}
-                      size="lg"
-                    >
-                      {scoreMutation.isPending ? (
-                        <Clock className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                      )}
-                      Submit Score for {currentCriteria?.name}
-                    </Button>
-                  </div>
-
-                  <p className="text-sm text-gray-500 text-center">
-                    Criteria {currentCriteriaIndex + 1} of {criteria.length}
-                  </p>
-                </CardContent>
-              </Card>
+                    <p className="text-sm text-gray-500 text-center">
+                      Criteria {currentCriteriaIndex + 1} of {criteria?.length || 0}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         )}
 
-        {/* Quick Actions */}
-        <div className="mt-8 flex flex-wrap gap-4 justify-center">
-          <Button variant="outline">
-            <Eye className="h-4 w-4 mr-2" />
-            View All Scores
-          </Button>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export Scores
-          </Button>
-          <Button className="bg-green-600 hover:bg-green-700">
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Finalize Round
-          </Button>
-        </div>
+        {/* Progress Summary */}
+        {currentShow && criteria && (
+          <Card className="mt-6">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold mb-2">Scoring Progress</h3>
+                <p className="text-gray-600">
+                  Show: {currentShow.name} • 
+                  Criteria: {currentCriteriaIndex + 1} of {criteria.length} • 
+                  Contestant: {currentContestantIndex + 1} of {contestants?.length || 0}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
