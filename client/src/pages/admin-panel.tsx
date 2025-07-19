@@ -118,6 +118,11 @@ export default function AdminPanel() {
     enabled: !!currentEventId,
   });
 
+  const { data: criteria } = useQuery<any[]>({
+    queryKey: ['/api/shows', shows?.[0]?.id, 'criteria'],
+    enabled: !!shows?.[0]?.id,
+  });
+
   const { data: phases } = useQuery<Phase[]>({
     queryKey: ['/api/events', currentEventId, 'phases'],
     enabled: !!currentEventId,
