@@ -69,7 +69,7 @@ export interface IStorage {
   updatePhase(id: string, phase: Partial<InsertPhase>): Promise<Phase>;
 
   // Score operations
-  getScores(eventId: string, phaseId?: string): Promise<(Score & { contestant: Contestant; judge: Judge; show: Show; criteria: Criteria })[]>;
+  getScores(eventId: string, phaseId?: string): Promise<(Score & { contestant: Contestant; judge: Judge; criteria: Criteria })[]>;
   createScore(score: InsertScore): Promise<Score>;
   updateScore(id: string, score: Partial<InsertScore>): Promise<Score>;
   getContestantScores(contestantId: string, phaseId: string): Promise<(Score & { show: Show; criteria: Criteria })[]>;
@@ -383,13 +383,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Score operations
-  async getScores(eventId: string, phaseId?: string): Promise<(Score & { contestant: Contestant; judge: Judge; criteria: Criteria })[]> {
+  async getScores(eventId: string, phaseId?: string): Promise<(Score & { contestant: Contestant; judge: Judge; show: Show; criteria: Criteria })[]> {
     const baseQuery = db
       .select()
       .from(scores)
       .innerJoin(contestants, eq(scores.contestantId, contestants.id))
       .innerJoin(judges, eq(scores.judgeId, judges.id))
-      .innerJoin(criteria, eq(scores.criteriaId, criteria.id));
+      .innerJoin(criteria, eq(scores.criteriaId, criteria.id))
+      .innerJoin(shows, eq(scores.showId, shows.id));
 
     const results = phaseId
       ? await baseQuery.where(and(eq(scores.eventId, eventId), eq(scores.phaseId, phaseId)))
@@ -399,6 +400,7 @@ export class DatabaseStorage implements IStorage {
       ...result.scores,
       contestant: result.contestants,
       judge: result.judges,
+      show: result.shows,
       criteria: result.criteria
     }));
   }

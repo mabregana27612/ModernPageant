@@ -438,6 +438,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Scoring progress route
+  app.get('/api/events/:eventId/scoring-progress', async (req, res) => {
+    try {
+      const eventId = req.params.eventId;
+      
+      // Get current active phase
+      const phases = await storage.getPhases(eventId);
+      const activePhase = phases.find(p => p.status === 'active');
+      
+      if (!activePhase) {
+        return res.json({
+          totalRequired: 0,
+          completed: 0,
+          progress: 0,
+          remainingContestants: 0,
+          remainingCriteria: 0,
+          activePhase: 'No active phase',
+          activeShow: 'No active show'
+        });
+      }
+
+      // Get contestants and judges for this event
+      const contestants = await storage.getContestants(eventId);
+      const judges = await storage.getJudges(eventId);
+      
+      // Get shows and criteria for active phase
+      const shows = await storage.getShows(eventId);
+      const activeShow = shows.find(s => s.id === activePhase.showId);
+      
+      if (!activeShow) {
+        return res.json({
+          totalRequired: 0,
+          completed: 0,
+          progress: 0,
+          remainingContestants: 0,
+          remainingCriteria: 0,
+          activePhase: activePhase.name,
+          activeShow: 'No active show'
+        });
+      }
+
+      const criteria = await storage.getCriteria(activeShow.id);
+      
+      // Calculate total required scores (contestants × judges × criteria)
+      const totalRequired = contestants.length * judges.length * criteria.length;
+      
+      // Get current scores for this phase
+      const currentScores = await storage.getScores(eventId, activePhase.id);
+      const completed = currentScores.length;
+      
+      // Calculate progress percentage
+      const progress = totalRequired > 0 ? Math.round((completed / totalRequired) * 100) : 0;
+      
+      // Calculate remaining items
+      const remainingScores = totalRequired - completed;
+      const remainingContestants = Math.ceil(remainingScores / (judges.length * criteria.length));
+      const remainingCriteria = criteria.length;
+
+      res.json({
+        totalRequired,
+        completed,
+        progress,
+        remainingContestants: Math.max(0, remainingContestants),
+        remainingCriteria,
+        activePhase: activePhase.name,
+        activeShow: activeShow.name
+      });
+    } catch (error) {
+      console.error("Error fetching scoring progress:", error);
+      res.status(500).json({ message: "Failed to fetch scoring progress" });
+    }
+  });
+
   // Results routes
   app.get('/api/events/:eventId/results', async (req, res) => {
     try {
