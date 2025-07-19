@@ -140,12 +140,22 @@ export default function JudgeDashboard() {
       contestantId,
       criteriaId,
       phaseId: activePhase.id,
-      score,
+      score: score.toString(),
     });
   };
 
   const handleNextContestant = () => {
-    if (contestants && currentContestantIndex < contestants.length - 1) {
+    // Auto-save current score before moving to next contestant
+    if (contestants && criteria && currentContestantIndex < contestants.length - 1) {
+      const currentContestant = contestants[currentContestantIndex];
+      const currentCriterion = criteria[currentCriteriaIndex];
+      const scoreKey = `${currentContestant.id}-${currentCriterion.id}`;
+      const currentScore = scores[scoreKey];
+      
+      if (currentScore && currentScore >= 1 && currentScore <= (currentCriterion.maxScore || 10)) {
+        handleScoreSubmit(currentContestant.id, currentCriterion.id);
+      }
+      
       setCurrentContestantIndex(prev => prev + 1);
     }
   };
@@ -171,7 +181,17 @@ export default function JudgeDashboard() {
   };
 
   const handleNextCriteria = () => {
-    if (criteria && currentCriteriaIndex < criteria.length - 1) {
+    // Auto-save current score before moving to next criteria
+    if (contestants && criteria && currentCriteriaIndex < criteria.length - 1) {
+      const currentContestant = contestants[currentContestantIndex];
+      const currentCriterion = criteria[currentCriteriaIndex];
+      const scoreKey = `${currentContestant.id}-${currentCriterion.id}`;
+      const currentScore = scores[scoreKey];
+      
+      if (currentScore && currentScore >= 1 && currentScore <= (currentCriterion.maxScore || 10)) {
+        handleScoreSubmit(currentContestant.id, currentCriterion.id);
+      }
+      
       setCurrentCriteriaIndex(prev => prev + 1);
     }
   };
