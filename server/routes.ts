@@ -220,49 +220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Legacy route for backward compatibility - map to shows
-  app.get('/api/events/:eventId/criteria', async (req, res) => {
-    try {
-      const shows = await storage.getShows(req.params.eventId);
-      res.json(shows);
-    } catch (error) {
-      console.error("Error fetching shows:", error);
-      res.status(500).json({ message: "Failed to fetch shows" });
-    }
-  });
-
-  app.post('/api/events/:eventId/criteria', isAuthenticated, async (req, res) => {
-    try {
-      const validatedData = insertShowSchema.parse({
-        ...req.body,
-        eventId: req.params.eventId,
-      });
-      const show = await storage.createShow(validatedData);
-      res.status(201).json(show);
-    } catch (error) {
-      console.error("Error creating show:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.issues.map(issue => ({
-            field: issue.path.join('.'),
-            message: issue.message
-          }))
-        });
-      }
-      res.status(500).json({ message: "Failed to create show" });
-    }
-  });
-
-  app.patch('/api/events/:eventId/criteria/:id', isAuthenticated, async (req, res) => {
-    try {
-      const validatedData = insertShowSchema.partial().parse(req.body);
-      const show = await storage.updateShow(req.params.id, validatedData);
-      res.json(show);
-    } catch (error) {
-      console.error("Error updating show:", error);
-      res.status(500).json({ message: "Failed to update show" });
-    }
-  });
+  // Legacy routes have been removed - use /api/events/:eventId/shows instead
 
   // Criteria routes (individual scoring elements within shows)
   app.get('/api/shows/:showId/criteria', async (req, res) => {
@@ -485,64 +443,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete scoring criteria
-  app.delete("/api/events/:eventId/criteria/:id", async (req, res) => {
-    try {
-      await storage.deleteScoringCriteria(req.params.id);
-      res.status(204).send();
-    } catch (error) {
-      console.error("Error deleting criteria:", error);
-      res.status(500).json({ message: "Failed to delete criteria" });
-    }
-  });
+  // Legacy scoring criteria routes removed - use shows/criteria structure instead
 
-  // Get sub-criteria for a specific criteria
-  app.get("/api/criteria/:criteriaId/sub-criteria", async (req, res) => {
-    try {
-      const subCriteria = await storage.getSubCriteria(req.params.criteriaId);
-      res.json(subCriteria);
-    } catch (error) {
-      console.error("Error fetching sub-criteria:", error);
-      res.status(500).json({ error: "Failed to fetch sub-criteria" });
-    }
-  });
-
-  // Create sub-criteria
-  app.post("/api/criteria/:criteriaId/sub-criteria", isAuthenticated, async (req, res) => {
-    try {
-      const subCriteriaData = {
-        ...req.body,
-        criteriaId: req.params.criteriaId,
-      };
-      const subCriteria = await storage.createSubCriteria(subCriteriaData);
-      res.status(201).json(subCriteria);
-    } catch (error) {
-      console.error("Error creating sub-criteria:", error);
-      res.status(500).json({ error: "Failed to create sub-criteria" });
-    }
-  });
-
-  // Update sub-criteria
-  app.patch("/api/sub-criteria/:subCriteriaId", isAuthenticated, async (req, res) => {
-    try {
-      const subCriteria = await storage.updateSubCriteria(req.params.subCriteriaId, req.body);
-      res.json(subCriteria);
-    } catch (error) {
-      console.error("Error updating sub-criteria:", error);
-      res.status(500).json({ error: "Failed to update sub-criteria" });
-    }
-  });
-
-  // Delete sub-criteria
-  app.delete("/api/sub-criteria/:subCriteriaId", isAuthenticated, async (req, res) => {
-    try {
-      await storage.deleteSubCriteria(req.params.subCriteriaId);
-      res.status(204).send();
-    } catch (error) {
-      console.error("Error deleting sub-criteria:", error);
-      res.status(500).json({ error: "Failed to delete sub-criteria" });
-    }
-  });
+  // These routes have been removed as part of the Shows/Criteria migration
+  // Sub-criteria functionality is now handled through the Shows/Criteria structure
 
   const httpServer = createServer(app);
   return httpServer;

@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import type { Event, ScoringCriteria, Phase, Contestant, Judge } from "@shared/schema";
+import type { Event, Show, Criteria, Phase, Contestant, Judge } from "@shared/schema";
 
 export default function AdminPanel() {
   const { user } = useAuth();
@@ -54,9 +54,9 @@ export default function AdminPanel() {
     resetScores: false
   });
 
-  // Sub-criteria queries
-  const { data: subCriteriaData } = useQuery({
-    queryKey: ['/api/criteria', selectedCriteria, 'sub-criteria'],
+  // Criteria queries for selected show
+  const { data: criteriaData } = useQuery({
+    queryKey: ['/api/shows', selectedCriteria, 'criteria'],
     enabled: !!selectedCriteria,
   });
 
@@ -120,7 +120,7 @@ export default function AdminPanel() {
     enabled: !!currentEventId,
   });
 
-  const { data: shows } = useQuery<ScoringCriteria[]>({
+  const { data: shows } = useQuery<Show[]>({
     queryKey: ['/api/events', currentEventId, 'shows'],
     enabled: !!currentEventId,
   });
