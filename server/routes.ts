@@ -378,77 +378,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get scoring progress for a judge
-  app.get('/api/events/:eventId/scoring-progress', async (req, res) => {
+  app.post('/api/events/:eventId/scores', isAuthenticated, async (req: any, res) => {
     try {
-      // For now, return basic progress for testing
-      const currentUserId = "43064850"; // Use fallback user for testing functionality
+      // Get user ID from authentication claims
+      const userId = req.user.claims.sub;
 
-      const contestants = await storage.getContestants(req.params.eventId);
-      const shows = await storage.getShows(req.params.eventId);
-      const phases = await storage.getPhases(req.params.eventId);
-      const activePhase = phases.find(p => p.status === 'active') || phases[0];
-      
-      if (!activePhase) {
-        return res.json({ totalRequired: 0, completed: 0, progress: 100 });
-      }
-
-      // Get criteria for the active phase's show
-      const activeShow = shows.find(s => s.id === activePhase.showId);
-      if (!activeShow) {
-        return res.json({ totalRequired: 0, completed: 0, progress: 100 });
-      }
-
-      const criteria = await storage.getCriteria(activeShow.id);
-      const judges = await storage.getJudges(req.params.eventId);
-      const judge = judges.find(j => j.userId === currentUserId);
-      
-      if (!judge) {
-        const totalRequired = contestants.length * criteria.length;
-        return res.json({ 
-          totalRequired, 
-          completed: 0, 
-          progress: 0,
-          remainingContestants: contestants.length,
-          remainingCriteria: criteria.length
-        });
-      }
-
-      const judgeScores = await storage.getJudgeScores(judge.id, activePhase.id);
-      const totalRequired = contestants.length * criteria.length;
-      const completed = judgeScores.length;
-      const progress = totalRequired > 0 ? Math.round((completed / totalRequired) * 100) : 100;
-
-      res.json({ 
-        totalRequired, 
-        completed, 
-        progress,
-        remainingContestants: contestants.length,
-        remainingCriteria: criteria.length,
-        activePhase: activePhase.name,
-        activeShow: activeShow.name
-      });
-    } catch (error) {
-      console.error("Error fetching scoring progress:", error);
-      res.status(500).json({ message: "Failed to fetch scoring progress" });
-    }
-  });
-
-  app.post('/api/events/:eventId/scores', isAuthenticated, async (req, res) => {
-    try {
-      console.log("Current user:", req.user);
-      
-      const currentUserId = req.user?.id || "43064850"; // Use authenticated user or fallback
-      
       // Get or create judge record for current user
       const judges = await storage.getJudges(req.params.eventId);
-      let judge = judges.find(j => j.userId === currentUserId);
-      
+      let judge = judges.find(j => j.userId === userId);
+
       if (!judge) {
         // Create judge record if it doesn't exist
         judge = await storage.createJudge({
           eventId: req.params.eventId,
-          userId: currentUserId,
+          userId: userId,
           specialization: "Judge"
         });
       }
@@ -466,7 +409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         judgeId: judge.id,
         showId: criteria.showId,
       });
-      
+
       const score = await storage.createScore(validatedData);
       res.status(201).json(score);
     } catch (error) {
