@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { events, contestants, judges, scoringCriteria, phases, scores, users } from "@shared/schema";
+import { events, contestants, judges, scoringCriteria, subCriteria, phases, scores, users } from "@shared/schema";
 import { sql } from "drizzle-orm";
 
 async function seedComprehensiveData() {
