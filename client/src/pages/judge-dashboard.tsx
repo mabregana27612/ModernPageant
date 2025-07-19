@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, Download, CheckCircle, Clock, Trophy } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle, Clock, Trophy } from "lucide-react";
+import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import type { Event, Contestant, ScoringCriteria, User, SubCriteria, Phase } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import type { Event, Contestant, User, Phase } from "@shared/schema";
 
 export default function JudgeDashboard() {
   const { user } = useAuth();
@@ -25,6 +25,14 @@ export default function JudgeDashboard() {
   const { data: events } = useQuery<Event[]>({
     queryKey: ['/api/events'],
   });
+
+  // Auto-select the first active event
+  useEffect(() => {
+    if (events && events.length > 0 && !selectedEvent) {
+      const activeEvent = events.find(e => e.status === 'active') || events[0];
+      setSelectedEvent(activeEvent.id);
+    }
+  }, [events, selectedEvent]);
 
   const { data: contestants } = useQuery<(Contestant & { user: User })[]>({
     queryKey: ['/api/events', selectedEvent, 'contestants'],
@@ -60,6 +68,14 @@ export default function JudgeDashboard() {
         description: "Your score has been recorded successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent] });
+      
+      // Auto-advance to next criteria or contestant
+      if (currentCriteriaIndex < (criteria?.length || 1) - 1) {
+        setCurrentCriteriaIndex(prev => prev + 1);
+      } else if (currentContestantIndex < (contestants?.length || 1) - 1) {
+        setCurrentContestantIndex(prev => prev + 1);
+        setCurrentCriteriaIndex(0);
+      }
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -84,11 +100,12 @@ export default function JudgeDashboard() {
   const handleScoreSubmit = (contestantId: string, criteriaId: string) => {
     const scoreKey = `${contestantId}-${criteriaId}`;
     const score = scores[scoreKey];
+    const maxScore = currentCriteria?.maxScore || 10;
 
-    if (!score || score < 1 || score > 10) {
+    if (!score || score < 1 || score > maxScore) {
       toast({
         title: "Invalid score",
-        description: "Score must be between 1 and 10.",
+        description: `Score must be between 1 and ${maxScore}.`,
         variant: "destructive",
       });
       return;
