@@ -23,8 +23,8 @@ export default function AdminPanel() {
   const [showEventForm, setShowEventForm] = useState(false);
   const [showContestantForm, setShowContestantForm] = useState(false);
   const [showJudgeForm, setShowJudgeForm] = useState(false);
-  const [showCriteriaForm, setShowCriteriaForm] = useState(false);
-  const [criteriaForm, setCriteriaForm] = useState({
+  const [showShowForm, setShowShowForm] = useState(false);
+  const [showForm, setShowForm] = useState({
     name: '',
     description: '',
     weight: '',
@@ -113,7 +113,7 @@ export default function AdminPanel() {
     enabled: !!currentEventId,
   });
 
-  const { data: criteria } = useQuery<ScoringCriteria[]>({
+  const { data: shows } = useQuery<ScoringCriteria[]>({
     queryKey: ['/api/events', currentEventId, 'criteria'],
     enabled: !!currentEventId,
   });
@@ -687,14 +687,14 @@ export default function AdminPanel() {
     },
   });
 
-  const handleAddScoringCriteria = async (data: any) => {
+  const handleAddShow = async (data: any) => {
     if (!currentEventId) return;
 
     try {
       await apiRequest('POST', `/api/events/${currentEventId}/criteria`, data);
       toast({
-        title: "Scoring criteria added",
-        description: "New scoring criteria has been added successfully.",
+        title: "Show added",
+        description: "New show category has been added successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
     } catch (error) {
@@ -711,7 +711,7 @@ export default function AdminPanel() {
       }
       toast({
         title: "Error",
-        description: "Failed to add scoring criteria.",
+        description: "Failed to add show category.",
         variant: "destructive",
       });
     }
@@ -837,7 +837,7 @@ export default function AdminPanel() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
             <div>
               <h1 className="text-3xl font-playfair font-bold text-gray-900 mb-2">Admin Panel</h1>
-              <p className="text-gray-600">Manage events, contestants, and scoring criteria</p>
+              <p className="text-gray-600">Manage events, contestants, shows, and scoring criteria</p>
             </div>
             <Button onClick={() => setShowEventForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -1023,7 +1023,7 @@ export default function AdminPanel() {
 
                             {(!subCriteriaData || subCriteriaData.length === 0) && (
                               <div className="text-center py-4 text-gray-500 text-sm">
-                                No sub-criteria defined yet. Add some to break down this scoring category.
+                                No criteria defined yet. Add some to break down this show category.
                               </div>
                             )}
                           </div>
@@ -1033,17 +1033,17 @@ export default function AdminPanel() {
                   ))}
                 </div>
 
-                {/* Add New Criteria */}
+                {/* Add New Show */}
                 <div className="mt-6 p-4 border-2 border-dashed border-gray-200 rounded-lg">
                   <div className="flex items-center justify-center">
                     <Button 
                       variant="ghost" 
                       className="text-gray-400 hover:text-gray-600"
-                      onClick={() => setShowCriteriaForm(true)}
+                      onClick={() => setShowShowForm(true)}
                       disabled={!currentEventId}
                     >
                       <Plus className="h-5 w-5 mr-2" />
-                      Add New Criteria
+                      Add New Show
                     </Button>
                   </div>
                 </div>

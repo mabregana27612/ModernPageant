@@ -30,16 +30,21 @@ export default function JudgeDashboard() {
     enabled: !!selectedEvent,
   });
 
-  const { data: criteria } = useQuery<ScoringCriteria[]>({
+  const { data: shows } = useQuery<ScoringCriteria[]>({
     queryKey: ['/api/events', selectedEvent, 'criteria'],
     enabled: !!selectedEvent,
   });
 
-  const currentCriteria = criteria?.[currentCriteriaIndex];
+  const currentShow = shows?.[currentCriteriaIndex];
 
-  const { data: subCriteria } = useQuery<SubCriteria[]>({
-    queryKey: ['/api/criteria', currentCriteria?.id, 'sub-criteria'],
-    enabled: !!currentCriteria?.id,
+  const { data: criteria } = useQuery<SubCriteria[]>({
+    queryKey: ['/api/criteria', currentShow?.id, 'sub-criteria'],
+    enabled: !!currentShow?.id,
+  });
+
+  const { data: phases } = useQuery<Phase[]>({
+    queryKey: ['/api/events', selectedEvent, 'phases'],
+    enabled: !!selectedEvent,
   });
 
   const scoreMutation = useMutation({
@@ -86,11 +91,22 @@ export default function JudgeDashboard() {
       return;
     }
 
+    // Get the current active phase from the event
+    const activePhase = phases?.find(p => p.status === 'active');
+    if (!activePhase) {
+      toast({
+        title: "No Active Phase",
+        description: "No active phase found. Please contact admin to activate a phase.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     scoreMutation.mutate({
       contestantId,
       criteriaId,
       judgeId: user?.id,
-      phaseId: "current-phase-id", // This should come from the event's current phase
+      phaseId: activePhase.id,
       score,
     });
   };
@@ -107,13 +123,13 @@ export default function JudgeDashboard() {
     }
   };
 
-  const handleNextCriteria = () => {
-    if (criteria && currentCriteriaIndex < criteria.length - 1) {
+  const handleNextShow = () => {
+    if (shows && currentCriteriaIndex < shows.length - 1) {
       setCurrentCriteriaIndex(prev => prev + 1);
     }
   };
 
-  const handlePrevCriteria = () => {
+  const handlePrevShow = () => {
     if (currentCriteriaIndex > 0) {
       setCurrentCriteriaIndex(prev => prev - 1);
     }
