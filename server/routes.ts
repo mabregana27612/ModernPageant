@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertEventSchema, insertContestantSchema, insertJudgeSchema, insertScoringCriteriaSchema, insertPhaseSchema, insertScoreSchema } from "@shared/schema";
+import { insertEventSchema, insertContestantSchema, insertJudgeSchema, insertShowSchema, insertCriteriaSchema, insertPhaseSchema, insertScoreSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -164,10 +164,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Scoring criteria routes
-  app.get('/api/events/:eventId/criteria', async (req, res) => {
+  // Shows routes (main categories that generate phases)
+  app.get('/api/events/:eventId/shows', async (req, res) => {
     try {
-      const criteria = await storage.getScoringCriteria(req.params.eventId);
+      const shows = await storage.getShows(req.params.eventId);
+      res.json(shows);
+    } catch (error) {
+      console.error("Error fetching shows:", error);
+      res.status(500).json({ message: "Failed to fetch shows" });
+    }
+  });
+
+  app.post('/api/events/:eventId/shows', isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertShowSchema.parse({
+        ...req.body,
+        eventId: req.params.eventId,
+      });
+      const show = await storage.createShow(validatedData);
+      res.status(201).json(show);
+    } catch (error) {
+      console.error("Error creating show:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.issues.map(issue => ({
+            field: issue.path.join('.'),
+            message: issue.message
+          }))
+        });
+      }
+      res.status(500).json({ message: "Failed to create show" });
+    }
+  });
+
+  app.patch('/api/shows/:id', isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertShowSchema.partial().parse(req.body);
+      const show = await storage.updateShow(req.params.id, validatedData);
+      res.json(show);
+    } catch (error) {
+      console.error("Error updating show:", error);
+      res.status(500).json({ message: "Failed to update show" });
+    }
+  });
+
+  app.delete('/api/shows/:id', isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteShow(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting show:", error);
+      res.status(500).json({ message: "Failed to delete show" });
+    }
+  });
+
+  // Criteria routes (individual scoring elements within shows)
+  app.get('/api/shows/:showId/criteria', async (req, res) => {
+    try {
+      const criteria = await storage.getCriteria(req.params.showId);
       res.json(criteria);
     } catch (error) {
       console.error("Error fetching criteria:", error);
@@ -175,13 +230,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/events/:eventId/criteria', isAuthenticated, async (req, res) => {
+  app.post('/api/shows/:showId/criteria', isAuthenticated, async (req, res) => {
     try {
-      const validatedData = insertScoringCriteriaSchema.parse({
+      const validatedData = insertCriteriaSchema.parse({
         ...req.body,
-        eventId: req.params.eventId,
+        showId: req.params.showId,
       });
-      const criteria = await storage.createScoringCriteria(validatedData);
+      const criteria = await storage.createCriteria(validatedData);
       res.status(201).json(criteria);
     } catch (error) {
       console.error("Error creating criteria:", error);
@@ -198,10 +253,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/events/:eventId/criteria/:id', isAuthenticated, async (req, res) => {
+  app.patch('/api/criteria/:id', isAuthenticated, async (req, res) => {
     try {
-      const validatedData = insertScoringCriteriaSchema.partial().parse(req.body);
-      const criteria = await storage.updateScoringCriteria(req.params.id, validatedData);
+      const validatedData = insertCriteriaSchema.partial().parse(req.body);
+      const criteria = await storage.updateCriteria(req.params.id, validatedData);
       res.json(criteria);
     } catch (error) {
       console.error("Error updating criteria:", error);
@@ -209,9 +264,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/events/:eventId/criteria/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/criteria/:id', isAuthenticated, async (req, res) => {
     try {
-      await storage.deleteScoringCriteria(req.params.id);
+      await storage.deleteCriteria(req.params.id);
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting criteria:", error);

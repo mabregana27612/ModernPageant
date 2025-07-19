@@ -127,4 +127,15 @@ Preferred communication style: Simple, everyday language.
 - **Input Validation**: Zod schemas for runtime type validation
 - **SQL Injection**: Prevented through Drizzle ORM parameterized queries
 
+## Recent Changes
+
+### January 19, 2025 - Major Schema Migration: Shows/Criteria Workflow
+- **Breaking Change**: Migrated from scoring criteria/sub-criteria to shows/criteria structure
+- **New Workflow**: Shows → Phases (auto-generated) → Criteria (individual scoring elements)
+- **Judge Experience**: Select contestant → score all criteria → move to next contestant
+- **Phase Progression**: Auto-advance when all contestants scored in current phase
+- **Database**: Created new `shows` and `criteria` tables, updated `phases` and `scores` tables
+- **API**: Updated storage layer and routes to support new structure
+- **Seed Data**: Created comprehensive sample pageant with realistic scoring data
+
 The system is designed to be scalable, secure, and maintainable with clear separation of concerns between frontend, backend, and database layers. The modular architecture allows for easy extension and customization of scoring criteria and competition formats.

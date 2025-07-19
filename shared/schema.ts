@@ -53,33 +53,34 @@ export const events = pgTable("events", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Scoring criteria table
-export const scoringCriteria = pgTable("scoring_criteria", {
+// Shows table - main competition categories that generate phases
+export const shows = pgTable("shows", {
   id: uuid("id").primaryKey().defaultRandom(),
   eventId: uuid("event_id").notNull().references(() => events.id),
   name: varchar("name").notNull(),
   description: text("description"),
   weight: decimal("weight", { precision: 5, scale: 2 }).notNull(), // percentage weight
-  maxScore: integer("max_score").notNull().default(10),
+  order: integer("order").notNull(),
   icon: varchar("icon"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Sub-criteria table for detailed scoring breakdown
-export const subCriteria = pgTable("sub_criteria", {
+// Criteria table - individual scoring elements within shows
+export const criteria = pgTable("criteria", {
   id: uuid("id").primaryKey().defaultRandom(),
-  criteriaId: uuid("criteria_id").notNull().references(() => scoringCriteria.id),
+  showId: uuid("show_id").notNull().references(() => shows.id),
   name: varchar("name").notNull(),
   description: text("description"),
-  weight: decimal("weight", { precision: 5, scale: 2 }).notNull(), // percentage weight within parent criteria
+  weight: decimal("weight", { precision: 5, scale: 2 }).notNull(), // percentage weight within show
   maxScore: integer("max_score").notNull().default(10),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Competition phases table
+// Competition phases table - automatically generated from shows
 export const phases = pgTable("phases", {
   id: uuid("id").primaryKey().defaultRandom(),
   eventId: uuid("event_id").notNull().references(() => events.id),
+  showId: uuid("show_id").notNull().references(() => shows.id),
   name: varchar("name").notNull(),
   order: integer("order").notNull(),
   status: varchar("status").notNull().default("pending"), // pending, active, completed
@@ -117,8 +118,8 @@ export const scores = pgTable("scores", {
   eventId: uuid("event_id").notNull().references(() => events.id),
   contestantId: uuid("contestant_id").notNull().references(() => contestants.id),
   judgeId: uuid("judge_id").notNull().references(() => judges.id),
-  criteriaId: uuid("criteria_id").notNull().references(() => scoringCriteria.id),
-  subCriteriaId: uuid("sub_criteria_id").references(() => subCriteria.id), // Optional: can score main criteria directly or sub-criteria
+  showId: uuid("show_id").notNull().references(() => shows.id),
+  criteriaId: uuid("criteria_id").notNull().references(() => criteria.id),
   phaseId: uuid("phase_id").notNull().references(() => phases.id),
   score: decimal("score", { precision: 5, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -129,7 +130,7 @@ export const scores = pgTable("scores", {
 export const eventsRelations = relations(events, ({ many }) => ({
   contestants: many(contestants),
   judges: many(judges),
-  criteria: many(scoringCriteria),
+  shows: many(shows),
   phases: many(phases),
   scores: many(scores),
 }));
@@ -146,19 +147,21 @@ export const judgesRelations = relations(judges, ({ one, many }) => ({
   scores: many(scores),
 }));
 
-export const scoringCriteriaRelations = relations(scoringCriteria, ({ one, many }) => ({
-  event: one(events, { fields: [scoringCriteria.eventId], references: [events.id] }),
+export const showsRelations = relations(shows, ({ one, many }) => ({
+  event: one(events, { fields: [shows.eventId], references: [events.id] }),
+  criteria: many(criteria),
+  phases: many(phases),
   scores: many(scores),
-  subCriteria: many(subCriteria),
 }));
 
-export const subCriteriaRelations = relations(subCriteria, ({ one, many }) => ({
-  criteria: one(scoringCriteria, { fields: [subCriteria.criteriaId], references: [scoringCriteria.id] }),
+export const criteriaRelations = relations(criteria, ({ one, many }) => ({
+  show: one(shows, { fields: [criteria.showId], references: [shows.id] }),
   scores: many(scores),
 }));
 
 export const phasesRelations = relations(phases, ({ one, many }) => ({
   event: one(events, { fields: [phases.eventId], references: [events.id] }),
+  show: one(shows, { fields: [phases.showId], references: [shows.id] }),
   scores: many(scores),
 }));
 
@@ -166,8 +169,8 @@ export const scoresRelations = relations(scores, ({ one }) => ({
   event: one(events, { fields: [scores.eventId], references: [events.id] }),
   contestant: one(contestants, { fields: [scores.contestantId], references: [contestants.id] }),
   judge: one(judges, { fields: [scores.judgeId], references: [judges.id] }),
-  criteria: one(scoringCriteria, { fields: [scores.criteriaId], references: [scoringCriteria.id] }),
-  subCriteria: one(subCriteria, { fields: [scores.subCriteriaId], references: [subCriteria.id] }),
+  show: one(shows, { fields: [scores.showId], references: [shows.id] }),
+  criteria: one(criteria, { fields: [scores.criteriaId], references: [criteria.id] }),
   phase: one(phases, { fields: [scores.phaseId], references: [phases.id] }),
 }));
 
@@ -179,8 +182,8 @@ export const insertEventSchema = createInsertSchema(events).extend({
 });
 export const insertContestantSchema = createInsertSchema(contestants);
 export const insertJudgeSchema = createInsertSchema(judges);
-export const insertScoringCriteriaSchema = createInsertSchema(scoringCriteria);
-export const insertSubCriteriaSchema = createInsertSchema(subCriteria);
+export const insertShowSchema = createInsertSchema(shows);
+export const insertCriteriaSchema = createInsertSchema(criteria);
 export const insertPhaseSchema = createInsertSchema(phases);
 export const insertScoreSchema = createInsertSchema(scores);
 
@@ -193,11 +196,17 @@ export type Contestant = typeof contestants.$inferSelect;
 export type InsertContestant = z.infer<typeof insertContestantSchema>;
 export type Judge = typeof judges.$inferSelect;
 export type InsertJudge = z.infer<typeof insertJudgeSchema>;
-export type ScoringCriteria = typeof scoringCriteria.$inferSelect;
-export type InsertScoringCriteria = z.infer<typeof insertScoringCriteriaSchema>;
-export type SubCriteria = typeof subCriteria.$inferSelect;
-export type InsertSubCriteria = z.infer<typeof insertSubCriteriaSchema>;
+export type Show = typeof shows.$inferSelect;
+export type InsertShow = z.infer<typeof insertShowSchema>;
+export type Criteria = typeof criteria.$inferSelect;
+export type InsertCriteria = z.infer<typeof insertCriteriaSchema>;
 export type Phase = typeof phases.$inferSelect;
 export type InsertPhase = z.infer<typeof insertPhaseSchema>;
 export type Score = typeof scores.$inferSelect;
 export type InsertScore = z.infer<typeof insertScoreSchema>;
+
+// Legacy exports for backward compatibility (to be removed later)
+export type ScoringCriteria = Show;
+export type InsertScoringCriteria = InsertShow;
+export type SubCriteria = Criteria;
+export type InsertSubCriteria = InsertCriteria;

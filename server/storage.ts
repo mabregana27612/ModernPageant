@@ -3,8 +3,8 @@ import {
   events,
   contestants,
   judges,
-  scoringCriteria,
-  subCriteria,
+  shows,
+  criteria,
   phases,
   scores,
   type User,
@@ -15,10 +15,10 @@ import {
   type InsertContestant,
   type Judge,
   type InsertJudge,
-  type ScoringCriteria,
-  type InsertScoringCriteria,
-  type SubCriteria,
-  type InsertSubCriteria,
+  type Show,
+  type InsertShow,
+  type Criteria,
+  type InsertCriteria,
   type Phase,
   type InsertPhase,
   type Score,
@@ -51,17 +51,17 @@ export interface IStorage {
   getJudge(id: string): Promise<Judge | undefined>;
   createJudge(judge: InsertJudge): Promise<Judge>;
 
-  // Scoring criteria operations
-  getScoringCriteria(eventId: string): Promise<ScoringCriteria[]>;
-  createScoringCriteria(criteria: InsertScoringCriteria): Promise<ScoringCriteria>;
-  updateScoringCriteria(id: string, criteria: Partial<InsertScoringCriteria>): Promise<ScoringCriteria>;
-  deleteScoringCriteria(id: string): Promise<void>;
+  // Show operations (main categories that generate phases)
+  getShows(eventId: string): Promise<Show[]>;
+  createShow(show: InsertShow): Promise<Show>;
+  updateShow(id: string, show: Partial<InsertShow>): Promise<Show>;
+  deleteShow(id: string): Promise<void>;
 
-  // Sub-criteria operations
-  getSubCriteria(criteriaId: string): Promise<SubCriteria[]>;
-  createSubCriteria(subCriteria: InsertSubCriteria): Promise<SubCriteria>;
-  updateSubCriteria(id: string, subCriteria: Partial<InsertSubCriteria>): Promise<SubCriteria>;
-  deleteSubCriteria(id: string): Promise<void>;
+  // Criteria operations (individual scoring elements within shows)
+  getCriteria(showId: string): Promise<Criteria[]>;
+  createCriteria(criteria: InsertCriteria): Promise<Criteria>;
+  updateCriteria(id: string, criteria: Partial<InsertCriteria>): Promise<Criteria>;
+  deleteCriteria(id: string): Promise<void>;
 
   // Phase operations
   getPhases(eventId: string): Promise<Phase[]>;
@@ -69,11 +69,11 @@ export interface IStorage {
   updatePhase(id: string, phase: Partial<InsertPhase>): Promise<Phase>;
 
   // Score operations
-  getScores(eventId: string, phaseId?: string): Promise<(Score & { contestant: Contestant; judge: Judge; criteria: ScoringCriteria })[]>;
+  getScores(eventId: string, phaseId?: string): Promise<(Score & { contestant: Contestant; judge: Judge; show: Show; criteria: Criteria })[]>;
   createScore(score: InsertScore): Promise<Score>;
   updateScore(id: string, score: Partial<InsertScore>): Promise<Score>;
-  getContestantScores(contestantId: string, phaseId: string): Promise<(Score & { criteria: ScoringCriteria })[]>;
-  getJudgeScores(judgeId: string, phaseId: string): Promise<(Score & { contestant: Contestant; criteria: ScoringCriteria })[]>;
+  getContestantScores(contestantId: string, phaseId: string): Promise<(Score & { show: Show; criteria: Criteria })[]>;
+  getJudgeScores(judgeId: string, phaseId: string): Promise<(Score & { contestant: Contestant; show: Show; criteria: Criteria })[]>;
 
   // Results operations
   getResults(eventId: string, phaseId: string): Promise<any[]>;
@@ -186,56 +186,68 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  // Scoring criteria operations
-  async getScoringCriteria(eventId: string): Promise<ScoringCriteria[]> {
+  // Show operations (main categories that generate phases)
+  async getShows(eventId: string): Promise<Show[]> {
     return await db
       .select()
-      .from(scoringCriteria)
-      .where(eq(scoringCriteria.eventId, eventId));
+      .from(shows)
+      .where(eq(shows.eventId, eventId))
+      .orderBy(shows.order);
   }
 
-  async createScoringCriteria(criteria: InsertScoringCriteria): Promise<ScoringCriteria> {
-    const [created] = await db.insert(scoringCriteria).values(criteria).returning();
+  async createShow(showData: InsertShow): Promise<Show> {
+    const [created] = await db.insert(shows).values(showData).returning();
+    
+    // Automatically create a phase for this show
+    await db.insert(phases).values({
+      eventId: showData.eventId,
+      showId: created.id,
+      name: created.name,
+      order: created.order,
+      status: 'pending',
+      resetScores: false,
+    });
+    
     return created;
   }
 
-  async updateScoringCriteria(id: string, criteria: Partial<InsertScoringCriteria>): Promise<ScoringCriteria> {
+  async updateShow(id: string, showData: Partial<InsertShow>): Promise<Show> {
     const [updated] = await db
-      .update(scoringCriteria)
-      .set(criteria)
-      .where(eq(scoringCriteria.id, id))
+      .update(shows)
+      .set(showData)
+      .where(eq(shows.id, id))
       .returning();
     return updated;
   }
 
-  async deleteScoringCriteria(id: string): Promise<void> {
-    await db.delete(scoringCriteria).where(eq(scoringCriteria.id, id));
+  async deleteShow(id: string): Promise<void> {
+    await db.delete(shows).where(eq(shows.id, id));
   }
 
-  // Sub-criteria operations
-  async getSubCriteria(criteriaId: string): Promise<SubCriteria[]> {
+  // Criteria operations (individual scoring elements within shows)
+  async getCriteria(showId: string): Promise<Criteria[]> {
     return await db
       .select()
-      .from(subCriteria)
-      .where(eq(subCriteria.criteriaId, criteriaId));
+      .from(criteria)
+      .where(eq(criteria.showId, showId));
   }
 
-  async createSubCriteria(subCriteriaData: InsertSubCriteria): Promise<SubCriteria> {
-    const [created] = await db.insert(subCriteria).values(subCriteriaData).returning();
+  async createCriteria(criteriaData: InsertCriteria): Promise<Criteria> {
+    const [created] = await db.insert(criteria).values(criteriaData).returning();
     return created;
   }
 
-  async updateSubCriteria(id: string, subCriteriaData: Partial<InsertSubCriteria>): Promise<SubCriteria> {
+  async updateCriteria(id: string, criteriaData: Partial<InsertCriteria>): Promise<Criteria> {
     const [updated] = await db
-      .update(subCriteria)
-      .set(subCriteriaData)
-      .where(eq(subCriteria.id, id))
+      .update(criteria)
+      .set(criteriaData)
+      .where(eq(criteria.id, id))
       .returning();
     return updated;
   }
 
-  async deleteSubCriteria(id: string): Promise<void> {
-    await db.delete(subCriteria).where(eq(subCriteria.id, id));
+  async deleteCriteria(id: string): Promise<void> {
+    await db.delete(criteria).where(eq(criteria.id, id));
   }
 
   // Phase operations
