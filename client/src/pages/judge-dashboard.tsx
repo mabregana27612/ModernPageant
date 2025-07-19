@@ -82,14 +82,6 @@ export default function JudgeDashboard() {
         description: "Your score has been recorded successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent] });
-      
-      // Auto-advance to next criteria or contestant
-      if (currentCriteriaIndex < (criteria?.length || 1) - 1) {
-        setCurrentCriteriaIndex(prev => prev + 1);
-      } else if (currentContestantIndex < (contestants?.length || 1) - 1) {
-        setCurrentContestantIndex(prev => prev + 1);
-        setCurrentCriteriaIndex(0);
-      }
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
