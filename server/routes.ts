@@ -219,6 +219,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Legacy route for backward compatibility - map to shows
+  app.get('/api/events/:eventId/criteria', async (req, res) => {
+    try {
+      const shows = await storage.getShows(req.params.eventId);
+      res.json(shows);
+    } catch (error) {
+      console.error("Error fetching shows:", error);
+      res.status(500).json({ message: "Failed to fetch shows" });
+    }
+  });
+
+  app.post('/api/events/:eventId/criteria', isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertShowSchema.parse({
+        ...req.body,
+        eventId: req.params.eventId,
+      });
+      const show = await storage.createShow(validatedData);
+      res.status(201).json(show);
+    } catch (error) {
+      console.error("Error creating show:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.issues.map(issue => ({
+            field: issue.path.join('.'),
+            message: issue.message
+          }))
+        });
+      }
+      res.status(500).json({ message: "Failed to create show" });
+    }
+  });
+
+  app.patch('/api/events/:eventId/criteria/:id', isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertShowSchema.partial().parse(req.body);
+      const show = await storage.updateShow(req.params.id, validatedData);
+      res.json(show);
+    } catch (error) {
+      console.error("Error updating show:", error);
+      res.status(500).json({ message: "Failed to update show" });
+    }
+  });
+
   // Criteria routes (individual scoring elements within shows)
   app.get('/api/shows/:showId/criteria', async (req, res) => {
     try {

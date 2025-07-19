@@ -121,7 +121,7 @@ export default function AdminPanel() {
   });
 
   const { data: shows } = useQuery<ScoringCriteria[]>({
-    queryKey: ['/api/events', currentEventId, 'criteria'],
+    queryKey: ['/api/events', currentEventId, 'shows'],
     enabled: !!currentEventId,
   });
 
@@ -286,8 +286,9 @@ export default function AdminPanel() {
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Scoring criteria created successfully.",
+        description: "Show created successfully.",
       });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'shows'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
       setShowCriteriaForm(false);
       setCriteriaForm({ name: '', description: '', weight: '', maxScore: '10' });
@@ -413,9 +414,10 @@ export default function AdminPanel() {
     },
     onSuccess: () => {
       toast({
-        title: "Criteria updated",
-        description: "Scoring criteria has been updated successfully.",
+        title: "Show updated",
+        description: "Show has been updated successfully.",
       });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'shows'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
     },
     onError: (error) => {
@@ -444,9 +446,10 @@ export default function AdminPanel() {
     },
     onSuccess: () => {
       toast({
-        title: "Criteria deleted",
-        description: "Scoring criteria has been deleted successfully.",
+        title: "Show deleted",
+        description: "Show has been deleted successfully.",
       });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'shows'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
     },
     onError: (error) => {
@@ -703,6 +706,7 @@ export default function AdminPanel() {
         title: "Show added",
         description: "New show category has been added successfully.",
       });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'shows'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
     } catch (error) {
       if (isUnauthorizedError(error)) {
