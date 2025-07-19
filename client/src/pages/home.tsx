@@ -72,7 +72,7 @@ export default function Home() {
           )}
           
           {(isJudge || isAdmin) && (
-            <Link href="/judge">
+            <Link href="/judge-dashboard">
               <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-center">
@@ -189,7 +189,7 @@ export default function Home() {
                         </Button>
                       )}
                       {isJudge && (
-                        <Button size="sm">
+                        <Button size="sm" onClick={() => window.location.href = '/judge-dashboard'}>
                           Judge
                         </Button>
                       )}

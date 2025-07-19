@@ -10,7 +10,7 @@ import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import type { Event, Contestant, ScoringCriteria, User, SubCriteria } from "@shared/schema";
+import type { Event, Contestant, ScoringCriteria, User, SubCriteria, Phase } from "@shared/schema";
 
 export default function JudgeDashboard() {
   const { user } = useAuth();
