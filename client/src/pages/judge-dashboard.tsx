@@ -371,9 +371,10 @@ export default function JudgeDashboard() {
               <Card>
                 <div className="relative">
                   <img 
-                    src={contestants[currentContestantIndex].photoUrl || 'https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300'} 
+                    src={contestants[currentContestantIndex].photoUrl || contestants[currentContestantIndex].user.profileImageUrl || 'https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300'} 
                     alt={`${contestants[currentContestantIndex].user.firstName} ${contestants[currentContestantIndex].user.lastName}`}
                     className="w-full h-64 object-cover rounded-t-lg"
+                    key={contestants[currentContestantIndex].id}
                   />
                   <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
                     #{contestants[currentContestantIndex].contestantNumber}

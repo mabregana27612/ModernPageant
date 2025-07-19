@@ -36,7 +36,7 @@ function Router() {
             <Route path="/" component={Home} />
             <Route path="/contestants" component={ContestantsPage} />
             <Route path="/contests" component={ContestsPage} />
-            <Route path="/judge-dashboard" component={JudgeDashboard} />
+            <Route path="/judge" component={JudgeDashboard} />
             <Route path="/admin" component={AdminPanel} />
             <Route path="/results" component={Results} />
           </>
