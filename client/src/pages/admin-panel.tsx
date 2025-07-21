@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Plus, Edit, Trash2, Play, Pause, RotateCcw, Users, Trophy, Calendar, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
@@ -129,10 +131,9 @@ function JudgeScoresView({ currentEventId }: { currentEventId: string | undefine
                   <SelectValue placeholder="All judges" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All judges</SelectItem>
                   {judges?.map((judge) => (
                     <SelectItem key={judge.id} value={judge.id}>
-                      {judge.userId} - {judge.specialization}
+                      {judge.user?.firstName} {judge.user?.lastName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -908,7 +909,7 @@ export default function AdminPanel() {
         variant: "destructive",
       });
     }
-  };
+  };The code changes complete the JudgeScoresView component by displaying judge scores in a table and adding necessary imports and logic for filtering and displaying the data.```text
 
   const handleAdvancePhase = () => {
     if (!currentEvent) {
