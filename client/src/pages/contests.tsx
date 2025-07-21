@@ -116,13 +116,13 @@ export default function ContestsPage() {
                     <div className="flex items-center text-sm text-gray-600">
                       <Calendar className="h-4 w-4 mr-2 text-gray-400" />
                       <span>
-                        {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}
+                        {new Date(event.startDate).toLocaleDateString()} - {event.endDate ? new Date(event.endDate).toLocaleDateString() : 'TBA'}
                       </span>
                     </div>
 
                     <div className="flex items-center text-sm text-gray-600">
                       <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                      <span>{event.location || 'Location TBA'}</span>
+                      <span>Location TBA</span>
                     </div>
 
                     <div className="flex items-center text-sm text-gray-600">

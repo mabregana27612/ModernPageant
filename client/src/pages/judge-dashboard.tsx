@@ -34,22 +34,22 @@ export default function JudgeDashboard() {
     }
   }, [events, selectedEvent]);
 
-  const { data: shows } = useQuery<any[]>({
-    queryKey: ['/api/events', selectedEvent, 'shows'],
+  const { data: phases } = useQuery<Phase[]>({
+    queryKey: ['/api/events', selectedEvent, 'phases'],
     enabled: !!selectedEvent,
   });
 
   const activePhase = phases?.find(p => p.status === 'active');
 
+  const { data: shows } = useQuery<any[]>({
+    queryKey: ['/api/events', selectedEvent, 'shows'],
+    enabled: !!selectedEvent,
+  });
+
   // Get eligible contestants for current phase instead of all contestants  
   const { data: contestants } = useQuery<(Contestant & { user: User })[]>({
     queryKey: ['/api/phases', activePhase?.id, 'contestants'],
     enabled: !!activePhase?.id,
-  });
-
-  const { data: phases } = useQuery<Phase[]>({
-    queryKey: ['/api/events', selectedEvent, 'phases'],
-    enabled: !!selectedEvent,
   });
 
   const currentShow = shows?.[currentShowIndex];

@@ -129,13 +129,15 @@ export default function PhaseProgression({ eventId }: PhaseProgressionProps) {
         <CardContent>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">
-                  Current Phase: <Badge>{currentPhase.name}</Badge>
-                </p>
-                <p className="text-sm text-gray-600">
-                  Next Phase: <Badge variant="outline">{nextPhase.name}</Badge>
-                </p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span>Current Phase:</span>
+                  <Badge>{currentPhase.name}</Badge>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span>Next Phase:</span>
+                  <Badge variant="outline">{nextPhase.name}</Badge>
+                </div>
               </div>
               <ArrowRight className="h-8 w-8 text-blue-500" />
             </div>
