@@ -166,15 +166,16 @@ export default function Results() {
                       </div>
                       <div>
                         <h2 className="text-2xl font-bold text-gray-900">{phase.name}</h2>
-                        <p className="text-gray-600">
-                          Phase {phase.order} • 
+                        <div className="text-gray-600 flex items-center gap-2">
+                          <span>Phase {phase.order}</span>
+                          <span>•</span>
                           <Badge variant={
                             phase.status === 'completed' ? 'default' :
                             phase.status === 'active' ? 'secondary' : 'outline'
-                          } className="ml-2">
+                          }>
                             {phase.status}
                           </Badge>
-                        </p>
+                        </div>
                       </div>
                     </div>
                   </div>

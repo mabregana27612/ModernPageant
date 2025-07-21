@@ -88,7 +88,7 @@ export default function ResultsTable({ results, title = "Final Rankings" }: Resu
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Badge variant={index === 0 ? 'default' : 'secondary'}>
-                      {result.totalScore?.toFixed(1) || '0.0'}
+                      {parseFloat(result.totalScore || '0').toFixed(1)}
                     </Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
