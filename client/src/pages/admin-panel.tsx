@@ -133,7 +133,7 @@ function JudgeScoresView({ currentEventId }: { currentEventId: string | undefine
                 <SelectContent>
                   {judges?.map((judge) => (
                     <SelectItem key={judge.id} value={judge.id}>
-                      {judge.user?.firstName} {judge.user?.lastName}
+                      {judge.userId}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -330,7 +330,7 @@ export default function AdminPanel() {
 
   // Redirect if not admin
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
+    if (!user || (user as any).role !== 'admin') {
       toast({
         title: "Unauthorized",
         description: "You must be an admin to access this page.",
@@ -726,7 +726,7 @@ export default function AdminPanel() {
     onSuccess: (data) => {
       toast({
         title: "Success",
-        description: data.message,
+        description: (data as any).message || "Phase advanced successfully",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'phases'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
@@ -892,7 +892,7 @@ export default function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'shows'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'criteria'] });
     } catch (error) {
-      if (isUnauthorizedError(error)) {
+      if (isUnauthorizedError(error as Error)) {
         toast({
           title: "Unauthorized",
           description: "You are logged out. Logging in again...",
@@ -909,7 +909,7 @@ export default function AdminPanel() {
         variant: "destructive",
       });
     }
-  };The code changes complete the JudgeScoresView component by displaying judge scores in a table and adding necessary imports and logic for filtering and displaying the data.```text
+  };
 
   const handleAdvancePhase = () => {
     if (!currentEvent) {
@@ -938,21 +938,21 @@ export default function AdminPanel() {
     if (!activePhase && currentPhases.length > 0) {
       // No active phase, start the first one
       if (confirm(`Start the first phase: "${currentPhases[0].name}"?`)) {
-        advancePhaseMutation.mutate(currentEventId);
+        advancePhaseMutation.mutate(currentEventId!);
       }
       return;
     }
 
     if (!nextPhase) {
       if (confirm(`Complete the event? This will mark "${activePhase?.name}" as completed.`)) {
-        advancePhaseMutation.mutate(currentEventId);
+        advancePhaseMutation.mutate(currentEventId!);
       }
       return;
     }
 
     // Regular phase advancement
-    if (confirm(`Advance from "${activePhase.name}" to "${nextPhase.name}"?`)) {
-      advancePhaseMutation.mutate(currentEventId);
+    if (confirm(`Advance from "${activePhase?.name}" to "${nextPhase.name}"?`)) {
+      advancePhaseMutation.mutate(currentEventId!);
     }
   };
 
@@ -969,9 +969,9 @@ export default function AdminPanel() {
     setEditingPhase(phase);
     setPhaseForm({
       name: phase.name,
-      description: phase.description || '',
+      description: '',
       order: phase.order.toString(),
-      resetScores: phase.resetScores
+      resetScores: phase.resetScores || false
     });
     setShowPhaseForm(true);
   };
@@ -1137,7 +1137,7 @@ export default function AdminPanel() {
                               className="w-16 text-center"
                               onChange={(e) => {
                                 const weight = parseFloat(e.target.value);
-                                updateCriteriaMutation.mutate({
+                                createCriteriaMutation.mutate({
                                   id: criterion.id,
                                   data: { weight }
                                 });
@@ -1181,7 +1181,7 @@ export default function AdminPanel() {
                           </div>
 
                           <div className="space-y-2">
-                            {criteriaData?.map((criteria: any) => (
+                            {(criteriaData as any)?.map?.((criteria: any) => (
                               <div key={criteria.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                 <div className="flex items-center space-x-4">
                                   <span className="text-sm font-medium">{criteria.name}</span>
@@ -1206,7 +1206,7 @@ export default function AdminPanel() {
                               </div>
                             ))}
 
-                            {(!criteriaData || criteriaData.length === 0) && (
+                            {(!criteriaData || !(criteriaData as any)?.length) && (
                               <div className="text-center py-4 text-gray-500 text-sm">
                                 No criteria defined yet. Add some to break down this show category.
                               </div>
@@ -1262,7 +1262,7 @@ export default function AdminPanel() {
                         <label className="flex items-center space-x-2">
                           <input
                             type="checkbox"
-                            checked={phase.resetScores}
+                            checked={phase.resetScores || false}
                             className="rounded border-gray-300 text-primary focus:ring-primary/20"
                             onChange={(e) => {
                               toast({
@@ -1282,9 +1282,9 @@ export default function AdminPanel() {
                 <div className="mt-6 flex space-x-4">
                   <Button onClick={() => {
                     handleAdvancePhase();
-                  }} disabled={advancePhaseMutation.isLoading}>
+                  }} disabled={advancePhaseMutation.isPending}>
                     <Play className="h-4 w-4 mr-2" />
-                    {advancePhaseMutation.isLoading ? 'Advancing...' : 'Advance to Next Phase'}
+                    {advancePhaseMutation.isPending ? 'Advancing...' : 'Advance to Next Phase'}
                   </Button>
                   <Button variant="outline" onClick={() => {
                     toast({
@@ -1510,7 +1510,7 @@ export default function AdminPanel() {
                           <label className="flex items-center space-x-2">
                             <input
                               type="checkbox"
-                              checked={phase.resetScores}
+                              checked={phase.resetScores || false}
                               className="rounded border-gray-300 text-primary focus:ring-primary/20"
                               disabled
                             />
