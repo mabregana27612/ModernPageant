@@ -1954,12 +1954,15 @@ export default function AdminPanel() {
                   </div>
                   <div className="flex space-x-2">
                     <Button 
-                      onClick={() => createShowMutation.mutate({
-                        ...showForm,
-                        phaseId: selectedPhase,
-                        weight: parseInt(showForm.weight),
-                        maxScore: parseInt(showForm.maxScore)
-                      })}
+                      onClick={() => {
+                        const currentShows = shows?.filter(s => s.phaseId === selectedPhase) || [];
+                        createShowMutation.mutate({
+                          ...showForm,
+                          phaseId: selectedPhase,
+                          weight: showForm.weight, // Keep as string
+                          order: currentShows.length + 1, // Add order field
+                        });
+                      }}
                       disabled={createShowMutation.isPending}
                     >
                       {createShowMutation.isPending ? 'Creating...' : 'Create Show'}
