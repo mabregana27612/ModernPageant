@@ -34,17 +34,20 @@ export default function JudgeDashboard() {
     }
   }, [events, selectedEvent]);
 
-  const { data: contestants } = useQuery<(Contestant & { user: User })[]>({
-    queryKey: ['/api/events', selectedEvent, 'contestants'],
-    enabled: !!selectedEvent,
-  });
-
   const { data: shows } = useQuery<any[]>({
     queryKey: ['/api/events', selectedEvent, 'shows'],
     enabled: !!selectedEvent,
   });
 
-  const currentShow = shows?.[currentShowIndex];
+  const { data: contestants } = useQuery<(Contestant & { user: User })[]>({
+    queryKey: ['/api/events', selectedEvent, 'contestants'],
+    enabled: !!selectedEvent,
+  });
+
+  const { data: phases } = useQuery<Phase[]>({
+    queryKey: ['/api/events', selectedEvent, 'phases'],
+    enabled: !!selectedEvent,
+  });
 
   const { data: criteria } = useQuery<any[]>({
     queryKey: ['/api/shows', currentShow?.id, 'criteria'],
@@ -53,10 +56,7 @@ export default function JudgeDashboard() {
 
   const currentCriteria = criteria?.[currentCriteriaIndex];
 
-  const { data: phases } = useQuery<Phase[]>({
-    queryKey: ['/api/events', selectedEvent, 'phases'],
-    enabled: !!selectedEvent,
-  });
+  const currentShow = shows?.[currentShowIndex];
 
   const { data: scoringProgress } = useQuery<{
     totalRequired: number;
@@ -72,22 +72,22 @@ export default function JudgeDashboard() {
     refetchInterval: 5000, // Refresh every 5 seconds
   });
 
-  // Fetch existing scores to populate the form
+  // Fetch existing scores for current judge only
   const { data: existingScores } = useQuery<any[]>({
-    queryKey: ['/api/events', selectedEvent, 'scores'],
+    queryKey: ['/api/events', selectedEvent, 'scores', 'current-judge'],
     enabled: !!selectedEvent && !!user,
   });
 
-  // Populate scores from existing database scores
+  // Populate scores from existing database scores (current judge only)
   useEffect(() => {
     if (existingScores && contestants && criteria) {
       const scoreMap: Record<string, number> = {};
-      
+
       existingScores.forEach((score: any) => {
         const scoreKey = `${score.contestantId}-${score.criteriaId}`;
         scoreMap[scoreKey] = parseFloat(score.score);
       });
-      
+
       setScores(scoreMap);
     }
   }, [existingScores, contestants, criteria]);
@@ -163,11 +163,11 @@ export default function JudgeDashboard() {
       const currentCriterion = criteria[currentCriteriaIndex];
       const scoreKey = `${currentContestant.id}-${currentCriterion.id}`;
       const currentScore = scores[scoreKey];
-      
+
       if (currentScore && currentScore >= 1 && currentScore <= (currentCriterion.maxScore || 10)) {
         handleScoreSubmit(currentContestant.id, currentCriterion.id);
       }
-      
+
       setCurrentContestantIndex(prev => prev + 1);
       setCurrentCriteriaIndex(0); // Reset to first criteria
     }
@@ -201,11 +201,11 @@ export default function JudgeDashboard() {
       const currentCriterion = criteria[currentCriteriaIndex];
       const scoreKey = `${currentContestant.id}-${currentCriterion.id}`;
       const currentScore = scores[scoreKey];
-      
+
       if (currentScore && currentScore >= 1 && currentScore <= (currentCriterion.maxScore || 10)) {
         handleScoreSubmit(currentContestant.id, currentCriterion.id);
       }
-      
+
       setCurrentCriteriaIndex(prev => prev + 1);
     }
   };

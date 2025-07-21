@@ -378,6 +378,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get scores for current judge only
+  app.get('/api/events/:eventId/scores/current-judge', isAuthenticated, async (req: any, res) => {
+    try {
+      const { phaseId } = req.query;
+      const userId = req.user.claims.sub;
+      
+      // Get judge record for current user
+      const judges = await storage.getJudges(req.params.eventId);
+      const judge = judges.find(j => j.userId === userId);
+      
+      if (!judge) {
+        return res.json([]); // No scores if not a judge
+      }
+      
+      const scores = await storage.getScoresByJudge(req.params.eventId, judge.id, phaseId as string);
+      res.json(scores);
+    } catch (error) {
+      console.error("Error fetching judge scores:", error);
+      res.status(500).json({ message: "Failed to fetch judge scores" });
+    }
+  });
+
   app.post('/api/events/:eventId/scores', isAuthenticated, async (req: any, res) => {
     try {
       // Get user ID from authentication claims

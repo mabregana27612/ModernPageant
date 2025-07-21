@@ -74,6 +74,7 @@ export interface IStorage {
   updateScore(id: string, score: Partial<InsertScore>): Promise<Score>;
   getContestantScores(contestantId: string, phaseId: string): Promise<(Score & { show: Show; criteria: Criteria })[]>;
   getJudgeScores(judgeId: string, phaseId: string): Promise<(Score & { contestant: Contestant; show: Show; criteria: Criteria })[]>;
+  getScoresByJudge(eventId: string, judgeId: string, phaseId?: string): Promise<any[]>;
 
   // Results operations
   getResults(eventId: string, phaseId: string): Promise<any[]>;
@@ -197,7 +198,7 @@ export class DatabaseStorage implements IStorage {
 
   async createShow(showData: InsertShow): Promise<Show> {
     const [created] = await db.insert(shows).values(showData).returning();
-    
+
     // Automatically create a phase for this show
     await db.insert(phases).values({
       eventId: showData.eventId,
@@ -207,7 +208,7 @@ export class DatabaseStorage implements IStorage {
       status: 'pending',
       resetScores: false,
     });
-    
+
     return created;
   }
 
@@ -382,7 +383,6 @@ export class DatabaseStorage implements IStorage {
     return { message: `Advanced to ${nextPhase.name}`, newPhase: updatedNextPhase };
   }
 
-  // Score operations
   async getScores(eventId: string, phaseId?: string): Promise<(Score & { contestant: Contestant; judge: Judge; show: Show; criteria: Criteria })[]> {
     const baseQuery = db
       .select()
@@ -445,6 +445,42 @@ export class DatabaseStorage implements IStorage {
       contestant: result.contestants,
       criteria: result.criteria
     }));
+  }
+
+  async getScoresByJudge(eventId: string, judgeId: string, phaseId?: string): Promise<any[]> {
+    try {
+      let query = db.select({
+        id: scores.id,
+        eventId: scores.eventId,
+        contestantId: scores.contestantId,
+        judgeId: scores.judgeId,
+        showId: scores.showId,
+        criteriaId: scores.criteriaId,
+        phaseId: scores.phaseId,
+        score: scores.score,
+        createdAt: scores.createdAt,
+        updatedAt: scores.updatedAt,
+        contestantName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+        criteriaName: criteria.name,
+      })
+      .from(scores)
+      .leftJoin(contestants, eq(scores.contestantId, contestants.id))
+      .leftJoin(users, eq(contestants.userId, users.id))
+      .leftJoin(criteria, eq(scores.criteriaId, criteria.id))
+      .where(and(
+        eq(scores.eventId, eventId),
+        eq(scores.judgeId, judgeId)
+      ));
+
+      if (phaseId) {
+        query = query.where(eq(scores.phaseId, phaseId));
+      }
+
+      return await query;
+    } catch (error) {
+      console.error("Error fetching judge scores:", error);
+      throw error;
+    }
   }
 
   async getResults(eventId: string, phaseId: string): Promise<any[]> {
