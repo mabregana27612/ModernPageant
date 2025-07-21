@@ -293,7 +293,6 @@ export default function AdminPanel() {
     name: '',
     description: '',
     order: '',
-    showId: '',
     resetScores: false
   });
 
@@ -764,7 +763,7 @@ export default function AdminPanel() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'phases'] });
       setShowPhaseForm(false);
-      setPhaseForm({ name: '', description: '', order: '', showId: '', resetScores: false });
+      setPhaseForm({ name: '', description: '', order: '', resetScores: false });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -798,7 +797,7 @@ export default function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'phases'] });
       setEditingPhase(null);
       setShowPhaseForm(false);
-      setPhaseForm({ name: '', description: '', order: '', showId: '', resetScores: false });
+      setPhaseForm({ name: '', description: '', order: '', resetScores: false });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -908,9 +907,9 @@ export default function AdminPanel() {
       toast({
         title: "Error",
         description: "Failed to add show category.",
-```python
         variant: "destructive",
       });
+    }```python
     }
   };
 
@@ -974,7 +973,6 @@ export default function AdminPanel() {
       name: phase.name,
       description: '',
       order: phase.order.toString(),
-      showId: phase.showId || '',
       resetScores: phase.resetScores || false
     });
     setShowPhaseForm(true);
@@ -1128,46 +1126,48 @@ export default function AdminPanel() {
                   {shows?.map((criterion) => (
                     <div key={criterion.id} className="border rounded-lg overflow-hidden">
                       <div className="flex items-center justify-between p-4 bg-gray-50">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium">{criterion.name}</span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium">{criterion.name}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Label className="text-sm text-gray-600">Weight:</Label>
+                              <Input
+                                type="number"
+                                value={criterion.weight}
+                                min="0"
+                                max="100"
+                                className="w-16 text-center"
+                                onChange={(e) => {
+                                  const weight = parseFloat(e.target.value);
+                                  createCriteriaMutation.mutate({
+                                    id: criterion.id,
+                                    data: { weight }
+                                  });
+                                }}
+                              />
+                              <span className="text-sm text-gray-600">%</span>
+                            </div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Label className="text-sm text-gray-600">Weight:</Label>
-                            <Input
-                              type="number"
-                              value={criterion.weight}
-                              min="0"
-                              max="100"
-                              className="w-16 text-center"
-                              onChange={(e) => {
-                                const weight = parseFloat(e.target.value);
-                                createCriteriaMutation.mutate({
-                                  id: criterion.id,
-                                  data: { weight }
-                                });
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedShow(selectedShow === criterion.id ? null : criterion.id);
                               }}
-                            />
-                            <span className="text-sm text-gray-600">%</span>
+                            >
+                              {selectedShow === criterion.id ? 'Hide' : 'Manage'} Criteria
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => deleteShowMutation.mutate(criterion.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
                           </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedShow(selectedShow === criterion.id ? null : criterion.id);
-                            }}
-                          >
-                            {selectedShow === criterion.id ? 'Hide' : 'Manage'} Criteria
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => deleteShowMutation.mutate(criterion.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
                         </div>
                       </div>
 
@@ -1768,8 +1768,8 @@ export default function AdminPanel() {
                     />
                   </div>
                   <div>
-                    ```python
-                    <Label htmlFor="contestant-occupation">Occupation</Label>
+                    <```python
+Label htmlFor="contestant-occupation">Occupation</Label>
                     <Input
                       id="contestant-occupation"
                       value={contestantForm.occupation}
@@ -2011,7 +2011,6 @@ export default function AdminPanel() {
                             name: phaseForm.name,
                             description: phaseForm.description,
                             order: parseInt(phaseForm.order),
-                            showId: phaseForm.showId,
                             resetScores: phaseForm.resetScores,
                             status: 'pending'
                           });
@@ -2027,7 +2026,7 @@ export default function AdminPanel() {
                     <Button variant="outline" onClick={() => {
                       setShowPhaseForm(false);
                       setEditingPhase(null);
-                      setPhaseForm({ name: '', description: '', order: '', showId: '', resetScores: false });
+                      setPhaseForm({ name: '', description: '', order: '', resetScores: false });
                     }}>
                       Cancel
                     </Button>

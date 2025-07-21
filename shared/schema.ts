@@ -53,13 +53,14 @@ export const events = pgTable("events", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Shows table - main competition categories that generate phases
+// Shows table - individual scoring categories within phases
 export const shows = pgTable("shows", {
   id: uuid("id").primaryKey().defaultRandom(),
   eventId: uuid("event_id").notNull().references(() => events.id),
+  phaseId: uuid("phase_id").notNull().references(() => phases.id),
   name: varchar("name").notNull(),
   description: text("description"),
-  weight: decimal("weight", { precision: 5, scale: 2 }).notNull(), // percentage weight
+  weight: decimal("weight", { precision: 5, scale: 2 }).notNull(), // percentage weight within phase
   order: integer("order").notNull(),
   icon: varchar("icon"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -76,12 +77,12 @@ export const criteria = pgTable("criteria", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Competition phases table - automatically generated from shows
+// Competition phases table - competition rounds (Top 10, Top 5, Finals, etc.)
 export const phases = pgTable("phases", {
   id: uuid("id").primaryKey().defaultRandom(),
   eventId: uuid("event_id").notNull().references(() => events.id),
-  showId: uuid("show_id").notNull().references(() => shows.id),
   name: varchar("name").notNull(),
+  description: text("description"),
   order: integer("order").notNull(),
   status: varchar("status").notNull().default("pending"), // pending, active, completed
   resetScores: boolean("reset_scores").default(false),
@@ -167,8 +168,8 @@ export const judgesRelations = relations(judges, ({ one, many }) => ({
 
 export const showsRelations = relations(shows, ({ one, many }) => ({
   event: one(events, { fields: [shows.eventId], references: [events.id] }),
+  phase: one(phases, { fields: [shows.phaseId], references: [phases.id] }),
   criteria: many(criteria),
-  phases: many(phases),
   scores: many(scores),
 }));
 
@@ -179,7 +180,7 @@ export const criteriaRelations = relations(criteria, ({ one, many }) => ({
 
 export const phasesRelations = relations(phases, ({ one, many }) => ({
   event: one(events, { fields: [phases.eventId], references: [events.id] }),
-  show: one(shows, { fields: [phases.showId], references: [shows.id] }),
+  shows: many(shows),
   scores: many(scores),
   contestantPhases: many(contestantPhases),
 }));
