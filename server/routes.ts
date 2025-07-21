@@ -370,7 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/events/:eventId/scores', async (req, res) => {
     try {
       const { phaseId } = req.query;
-      const scores = await storage.getScores(req.params.eventId, phaseId as string);
+      const scores = await storage.getScoresWithDetails(req.params.eventId, phaseId as string);
       res.json(scores);
     } catch (error) {
       console.error("Error fetching scores:", error);

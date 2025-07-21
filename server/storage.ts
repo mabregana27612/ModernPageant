@@ -483,6 +483,41 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getScoresWithDetails(eventId: string, phaseId?: string): Promise<any[]> {
+    try {
+      let query = db.select({
+        id: scores.id,
+        eventId: scores.eventId,
+        contestantId: scores.contestantId,
+        judgeId: scores.judgeId,
+        showId: scores.showId,
+        criteriaId: scores.criteriaId,
+        phaseId: scores.phaseId,
+        score: scores.score,
+        createdAt: scores.createdAt,
+        updatedAt: scores.updatedAt,
+        contestantName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+        criteriaName: criteria.name,
+        showName: shows.name,
+      })
+      .from(scores)
+      .leftJoin(contestants, eq(scores.contestantId, contestants.id))
+      .leftJoin(users, eq(contestants.userId, users.id))
+      .leftJoin(criteria, eq(scores.criteriaId, criteria.id))
+      .leftJoin(shows, eq(scores.showId, shows.id))
+      .where(eq(scores.eventId, eventId));
+
+      if (phaseId) {
+        query = query.where(eq(scores.phaseId, phaseId));
+      }
+
+      return await query.orderBy(scores.createdAt);
+    } catch (error) {
+      console.error("Error fetching scores with details:", error);
+      throw error;
+    }
+  }
+
   async getResults(eventId: string, phaseId: string): Promise<any[]> {
     // Complex query to calculate weighted scores and rankings
     const results = await db

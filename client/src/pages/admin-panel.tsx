@@ -15,6 +15,253 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import type { Event, Show, Criteria, Phase, Contestant, Judge } from "@shared/schema";
 
+function JudgeScoresView({ currentEventId }: { currentEventId: string | undefined }) {
+  const [selectedPhase, setSelectedPhase] = useState<string>("");
+  const [selectedJudge, setSelectedJudge] = useState<string>("");
+
+  const { data: phases } = useQuery<Phase[]>({
+    queryKey: ['/api/events', currentEventId, 'phases'],
+    enabled: !!currentEventId,
+  });
+
+  const { data: judges } = useQuery<Judge[]>({
+    queryKey: ['/api/events', currentEventId, 'judges'],
+    enabled: !!currentEventId,
+  });
+
+  const { data: contestants } = useQuery<Contestant[]>({
+    queryKey: ['/api/events', currentEventId, 'contestants'],
+    enabled: !!currentEventId,
+  });
+
+  const { data: shows } = useQuery<Show[]>({
+    queryKey: ['/api/events', currentEventId, 'shows'],
+    enabled: !!currentEventId,
+  });
+
+  const { data: allScores } = useQuery<any[]>({
+    queryKey: ['/api/events', currentEventId, 'scores'],
+    queryFn: async () => {
+      const response = await fetch(`/api/events/${currentEventId}/scores${selectedPhase ? `?phaseId=${selectedPhase}` : ''}`);
+      if (!response.ok) throw new Error('Failed to fetch scores');
+      return response.json();
+    },
+    enabled: !!currentEventId,
+  });
+
+  const activePhase = phases?.find(p => p.status === 'active') || phases?.[0];
+  const currentPhaseId = selectedPhase || activePhase?.id;
+
+  // Filter scores by selected judge if one is selected
+  const filteredScores = allScores?.filter(score => 
+    (!selectedJudge || score.judgeId === selectedJudge) &&
+    (!selectedPhase || score.phaseId === currentPhaseId)
+  ) || [];
+
+  // Group scores by judge
+  const scoresByJudge = filteredScores.reduce((acc: any, score: any) => {
+    if (!acc[score.judgeId]) {
+      acc[score.judgeId] = [];
+    }
+    acc[score.judgeId].push(score);
+    return acc;
+  }, {});
+
+  // Calculate judge statistics
+  const judgeStats = judges?.map(judge => {
+    const judgeScores = scoresByJudge[judge.id] || [];
+    const totalScores = judgeScores.length;
+    const avgScore = totalScores > 0 ? 
+      judgeScores.reduce((sum: number, score: any) => sum + parseFloat(score.score), 0) / totalScores : 0;
+    const maxScore = totalScores > 0 ? 
+      Math.max(...judgeScores.map((s: any) => parseFloat(s.score))) : 0;
+    const minScore = totalScores > 0 ? 
+      Math.min(...judgeScores.map((s: any) => parseFloat(s.score))) : 0;
+
+    return {
+      judge,
+      totalScores,
+      avgScore,
+      maxScore,
+      minScore
+    };
+  }) || [];
+
+  if (!currentEventId) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-gray-600">Please select an event first.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Judge Scoring Analysis</CardTitle>
+          <p className="text-gray-600">View and analyze individual judge scoring patterns</p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4 mb-6">
+            <div className="flex items-center space-x-2">
+              <Label>Phase:</Label>
+              <Select value={selectedPhase} onValueChange={setSelectedPhase}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="All phases" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All phases</SelectItem>
+                  {phases?.map((phase) => (
+                    <SelectItem key={phase.id} value={phase.id}>
+                      {phase.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Label>Judge:</Label>
+              <Select value={selectedJudge} onValueChange={setSelectedJudge}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="All judges" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All judges</SelectItem>
+                  {judges?.map((judge) => (
+                    <SelectItem key={judge.id} value={judge.id}>
+                      {judge.userId} - {judge.specialization}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Judge Statistics Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {judgeStats.map(({ judge, totalScores, avgScore, maxScore, minScore }) => (
+              <Card key={judge.id} className="p-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold">{judge.userId}</h4>
+                  <p className="text-sm text-gray-600">{judge.specialization}</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>Total Scores: <Badge variant="outline">{totalScores}</Badge></div>
+                    <div>Avg Score: <Badge variant="secondary">{avgScore.toFixed(2)}</Badge></div>
+                    <div>Max Score: <Badge variant="default">{maxScore.toFixed(2)}</Badge></div>
+                    <div>Min Score: <Badge variant="outline">{minScore.toFixed(2)}</Badge></div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Detailed Scores Table */}
+          {selectedJudge && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Detailed Scores - {judges?.find(j => j.id === selectedJudge)?.userId}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-200">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-200 p-2 text-left">Contestant</th>
+                        <th className="border border-gray-200 p-2 text-left">Show</th>
+                        <th className="border border-gray-200 p-2 text-left">Criteria</th>
+                        <th className="border border-gray-200 p-2 text-left">Score</th>
+                        <th className="border border-gray-200 p-2 text-left">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scoresByJudge[selectedJudge]?.map((score: any) => {
+                        const contestant = contestants?.find(c => c.id === score.contestantId);
+                        const show = shows?.find(s => s.id === score.showId);
+                        return (
+                          <tr key={score.id} className="hover:bg-gray-50">
+                            <td className="border border-gray-200 p-2">{contestant?.userId || 'Unknown'}</td>
+                            <td className="border border-gray-200 p-2">{show?.name || 'Unknown'}</td>
+                            <td className="border border-gray-200 p-2">{score.criteriaName || 'Unknown'}</td>
+                            <td className="border border-gray-200 p-2">
+                              <Badge variant="default">{parseFloat(score.score).toFixed(2)}</Badge>
+                            </td>
+                            <td className="border border-gray-200 p-2">
+                              {new Date(score.createdAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* All Judges Overview Table */}
+          {!selectedJudge && (
+            <Card>
+              <CardHeader>
+                <CardTitle>All Judges Scores Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-200">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-200 p-2 text-left">Judge</th>
+                        <th className="border border-gray-200 p-2 text-left">Contestant</th>
+                        <th className="border border-gray-200 p-2 text-left">Show</th>
+                        <th className="border border-gray-200 p-2 text-left">Criteria</th>
+                        <th className="border border-gray-200 p-2 text-left">Score</th>
+                        <th className="border border-gray-200 p-2 text-left">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredScores.slice(0, 50).map((score: any) => {
+                        const judge = judges?.find(j => j.id === score.judgeId);
+                        const contestant = contestants?.find(c => c.id === score.contestantId);
+                        const show = shows?.find(s => s.id === score.showId);
+                        return (
+                          <tr key={score.id} className="hover:bg-gray-50">
+                            <td className="border border-gray-200 p-2">
+                              <div>
+                                <div className="font-medium">{judge?.userId || 'Unknown'}</div>
+                                <div className="text-sm text-gray-600">{judge?.specialization}</div>
+                              </div>
+                            </td>
+                            <td className="border border-gray-200 p-2">{contestant?.userId || 'Unknown'}</td>
+                            <td className="border border-gray-200 p-2">{show?.name || 'Unknown'}</td>
+                            <td className="border border-gray-200 p-2">{score.criteriaName || 'Unknown'}</td>
+                            <td className="border border-gray-200 p-2">
+                              <Badge variant="default">{parseFloat(score.score).toFixed(2)}</Badge>
+                            </td>
+                            <td className="border border-gray-200 p-2">
+                              {new Date(score.createdAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {filteredScores.length > 50 && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      Showing first 50 scores. Use filters to narrow down results.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -853,12 +1100,13 @@ export default function AdminPanel() {
 
         {/* Admin Tabs */}
         <Tabs defaultValue="scoring" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="contestants">Contestants</TabsTrigger>
             <TabsTrigger value="judges">Judges</TabsTrigger>
             <TabsTrigger value="phases">Phases</TabsTrigger>
             <TabsTrigger value="scoring">Scoring</TabsTrigger>
+            <TabsTrigger value="judge-scores">Judge Scores</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
@@ -1342,6 +1590,10 @@ export default function AdminPanel() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="judge-scores">
+            <JudgeScoresView currentEventId={currentEventId} />
           </TabsContent>
 
           <TabsContent value="analytics">
