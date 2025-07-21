@@ -112,6 +112,17 @@ export const judges = pgTable("judges", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Contestant Phase Participation table - tracks which contestants are eligible for each phase
+export const contestantPhases = pgTable("contestant_phases", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  contestantId: uuid("contestant_id").notNull().references(() => contestants.id),
+  phaseId: uuid("phase_id").notNull().references(() => phases.id),
+  status: varchar("status").notNull().default("active"), // active, eliminated
+  advancedFromPhase: uuid("advanced_from_phase").references(() => phases.id),
+  rank: integer("rank"), // rank when advanced from previous phase
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Scores table
 export const scores = pgTable("scores", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -139,6 +150,13 @@ export const contestantsRelations = relations(contestants, ({ one, many }) => ({
   event: one(events, { fields: [contestants.eventId], references: [events.id] }),
   user: one(users, { fields: [contestants.userId], references: [users.id] }),
   scores: many(scores),
+  contestantPhases: many(contestantPhases),
+}));
+
+export const contestantPhasesRelations = relations(contestantPhases, ({ one }) => ({
+  contestant: one(contestants, { fields: [contestantPhases.contestantId], references: [contestants.id] }),
+  phase: one(phases, { fields: [contestantPhases.phaseId], references: [phases.id] }),
+  advancedFromPhase: one(phases, { fields: [contestantPhases.advancedFromPhase], references: [phases.id] }),
 }));
 
 export const judgesRelations = relations(judges, ({ one, many }) => ({
@@ -163,6 +181,7 @@ export const phasesRelations = relations(phases, ({ one, many }) => ({
   event: one(events, { fields: [phases.eventId], references: [events.id] }),
   show: one(shows, { fields: [phases.showId], references: [shows.id] }),
   scores: many(scores),
+  contestantPhases: many(contestantPhases),
 }));
 
 export const scoresRelations = relations(scores, ({ one }) => ({
@@ -185,6 +204,7 @@ export const insertJudgeSchema = createInsertSchema(judges);
 export const insertShowSchema = createInsertSchema(shows);
 export const insertCriteriaSchema = createInsertSchema(criteria);
 export const insertPhaseSchema = createInsertSchema(phases);
+export const insertContestantPhaseSchema = createInsertSchema(contestantPhases);
 export const insertScoreSchema = createInsertSchema(scores);
 
 // Types
@@ -202,6 +222,8 @@ export type Criteria = typeof criteria.$inferSelect;
 export type InsertCriteria = z.infer<typeof insertCriteriaSchema>;
 export type Phase = typeof phases.$inferSelect;
 export type InsertPhase = z.infer<typeof insertPhaseSchema>;
+export type ContestantPhase = typeof contestantPhases.$inferSelect;
+export type InsertContestantPhase = z.infer<typeof insertContestantPhaseSchema>;
 export type Score = typeof scores.$inferSelect;
 export type InsertScore = z.infer<typeof insertScoreSchema>;
 

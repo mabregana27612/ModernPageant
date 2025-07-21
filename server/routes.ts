@@ -366,6 +366,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Contestant Phase Progression routes
+  app.get('/api/phases/:phaseId/contestants', async (req, res) => {
+    try {
+      const contestants = await storage.getEligibleContestants(req.params.phaseId);
+      res.json(contestants);
+    } catch (error) {
+      console.error("Error fetching eligible contestants:", error);
+      res.status(500).json({ message: "Failed to fetch eligible contestants" });
+    }
+  });
+
+  app.post('/api/events/:eventId/advance-contestants', isAuthenticated, async (req, res) => {
+    try {
+      const { selectedContestantIds } = req.body;
+      if (!Array.isArray(selectedContestantIds) || selectedContestantIds.length === 0) {
+        return res.status(400).json({ message: "No contestants selected for advancement" });
+      }
+      
+      const result = await storage.advanceContestantsToNextPhase(req.params.eventId, selectedContestantIds);
+      res.json(result);
+    } catch (error) {
+      console.error("Error advancing contestants:", error);
+      res.status(400).json({ message: error.message || "Failed to advance contestants" });
+    }
+  });
+
+  app.post('/api/phases/:phaseId/add-contestants', isAuthenticated, async (req, res) => {
+    try {
+      const { contestantIds, advancedFromPhase } = req.body;
+      if (!Array.isArray(contestantIds) || contestantIds.length === 0) {
+        return res.status(400).json({ message: "No contestants provided" });
+      }
+      
+      const result = await storage.addContestantsToPhase(contestantIds, req.params.phaseId, advancedFromPhase);
+      res.json(result);
+    } catch (error) {
+      console.error("Error adding contestants to phase:", error);
+      res.status(500).json({ message: "Failed to add contestants to phase" });
+    }
+  });
+
   // Score routes
   app.get('/api/events/:eventId/scores', async (req, res) => {
     try {

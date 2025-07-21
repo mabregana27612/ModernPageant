@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Edit, Trash2, Play, Pause, RotateCcw, Users, Trophy, Calendar, Settings } from "lucide-react";
+import { Plus, Edit, Trash2, Play, Pause, RotateCcw, Users, Trophy, Calendar, Settings, ArrowRight } from "lucide-react";
+import PhaseProgression from "@/components/phase-progression";
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -1101,11 +1102,12 @@ export default function AdminPanel() {
 
         {/* Admin Tabs */}
         <Tabs defaultValue="scoring" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="contestants">Contestants</TabsTrigger>
             <TabsTrigger value="judges">Judges</TabsTrigger>
             <TabsTrigger value="phases">Phases</TabsTrigger>
+            <TabsTrigger value="progression">Progression</TabsTrigger>
             <TabsTrigger value="scoring">Scoring</TabsTrigger>
             <TabsTrigger value="judge-scores">Judge Scores</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -1588,6 +1590,25 @@ export default function AdminPanel() {
                       Reset Current Phase
                     </Button>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="progression">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ArrowRight className="h-5 w-5" />
+                  Phase Progression
+                </CardTitle>
+                <p className="text-gray-600">Select top contestants to advance to the next phase</p>
+              </CardHeader>
+              <CardContent>
+                {currentEventId ? (
+                  <PhaseProgression eventId={currentEventId} />
+                ) : (
+                  <p className="text-gray-500">Please select an event to manage phase progression.</p>
                 )}
               </CardContent>
             </Card>

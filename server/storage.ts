@@ -6,6 +6,7 @@ import {
   shows,
   criteria,
   phases,
+  contestantPhases,
   scores,
   type User,
   type UpsertUser,
@@ -21,6 +22,8 @@ import {
   type InsertCriteria,
   type Phase,
   type InsertPhase,
+  type ContestantPhase,
+  type InsertContestantPhase,
   type Score,
   type InsertScore,
 } from "@shared/schema";
@@ -67,6 +70,12 @@ export interface IStorage {
   getPhases(eventId: string): Promise<Phase[]>;
   createPhase(phase: InsertPhase): Promise<Phase>;
   updatePhase(id: string, phase: Partial<InsertPhase>): Promise<Phase>;
+
+  // Contestant Phase operations
+  getContestantPhases(phaseId: string): Promise<ContestantPhase[]>;
+  addContestantsToPhase(contestantIds: string[], phaseId: string, advancedFromPhase?: string): Promise<ContestantPhase[]>;
+  getEligibleContestants(phaseId: string): Promise<(Contestant & { user: User })[]>;
+  advanceContestantsToNextPhase(eventId: string, selectedContestantIds: string[]): Promise<{ message: string; advancedCount: number }>;
 
   // Score operations
   getScores(eventId: string, phaseId?: string): Promise<(Score & { contestant: Contestant; judge: Judge; criteria: Criteria })[]>;
@@ -381,6 +390,90 @@ export class DatabaseStorage implements IStorage {
     }
 
     return { message: `Advanced to ${nextPhase.name}`, newPhase: updatedNextPhase };
+  }
+
+  // Contestant Phase operations
+  async getContestantPhases(phaseId: string): Promise<ContestantPhase[]> {
+    return await db
+      .select()
+      .from(contestantPhases)
+      .where(eq(contestantPhases.phaseId, phaseId));
+  }
+
+  async addContestantsToPhase(contestantIds: string[], phaseId: string, advancedFromPhase?: string): Promise<ContestantPhase[]> {
+    const participations = contestantIds.map((contestantId, index) => ({
+      contestantId,
+      phaseId,
+      advancedFromPhase,
+      rank: index + 1, // Assign ranking based on order
+      status: "active" as const
+    }));
+
+    return await db.insert(contestantPhases).values(participations).returning();
+  }
+
+  async getEligibleContestants(phaseId: string): Promise<(Contestant & { user: User })[]> {
+    // Get contestants who are eligible for this phase
+    const participations = await db
+      .select({
+        contestant: contestants,
+        user: users
+      })
+      .from(contestantPhases)
+      .innerJoin(contestants, eq(contestantPhases.contestantId, contestants.id))
+      .innerJoin(users, eq(contestants.userId, users.id))
+      .where(and(
+        eq(contestantPhases.phaseId, phaseId),
+        eq(contestantPhases.status, 'active')
+      ));
+
+    return participations.map(p => ({ ...p.contestant, user: p.user }));
+  }
+
+  async advanceContestantsToNextPhase(eventId: string, selectedContestantIds: string[]): Promise<{ message: string; advancedCount: number }> {
+    // Get current active phase
+    const allPhases = await db
+      .select()
+      .from(phases)
+      .where(eq(phases.eventId, eventId))
+      .orderBy(phases.order);
+
+    const currentPhase = allPhases.find(p => p.status === 'active');
+    if (!currentPhase) {
+      throw new Error("No active phase found");
+    }
+
+    // Find next phase
+    const currentIndex = allPhases.findIndex(p => p.id === currentPhase.id);
+    const nextPhase = allPhases[currentIndex + 1];
+
+    if (!nextPhase) {
+      throw new Error("No next phase available");
+    }
+
+    // Add selected contestants to next phase
+    await this.addContestantsToPhase(selectedContestantIds, nextPhase.id, currentPhase.id);
+
+    // Eliminate non-selected contestants from current phase
+    const allCurrentContestants = await this.getContestantPhases(currentPhase.id);
+    const eliminatedIds = allCurrentContestants
+      .map(cp => cp.contestantId)
+      .filter(id => !selectedContestantIds.includes(id));
+
+    if (eliminatedIds.length > 0) {
+      await db
+        .update(contestantPhases)
+        .set({ status: 'eliminated' })
+        .where(and(
+          eq(contestantPhases.phaseId, currentPhase.id),
+          sql`contestant_id = ANY(${eliminatedIds})`
+        ));
+    }
+
+    return {
+      message: `Advanced ${selectedContestantIds.length} contestants to ${nextPhase.name}`,
+      advancedCount: selectedContestantIds.length
+    };
   }
 
   async getScores(eventId: string, phaseId?: string): Promise<(Score & { contestant: Contestant; judge: Judge; show: Show; criteria: Criteria })[]> {

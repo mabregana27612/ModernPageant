@@ -39,9 +39,12 @@ export default function JudgeDashboard() {
     enabled: !!selectedEvent,
   });
 
+  const activePhase = phases?.find(p => p.status === 'active');
+
+  // Get eligible contestants for current phase instead of all contestants  
   const { data: contestants } = useQuery<(Contestant & { user: User })[]>({
-    queryKey: ['/api/events', selectedEvent, 'contestants'],
-    enabled: !!selectedEvent,
+    queryKey: ['/api/phases', activePhase?.id, 'contestants'],
+    enabled: !!activePhase?.id,
   });
 
   const { data: phases } = useQuery<Phase[]>({

@@ -129,6 +129,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### January 21, 2025 - Phase Progression System Implementation
+- **Phase Progression**: Implemented comprehensive contestant advancement system between competition phases
+- **Database**: Added `contestant_phases` table to track which contestants are eligible for each phase
+- **Admin Interface**: Created Phase Progression tab for selecting top performers to advance to next rounds
+- **Judge Dashboard**: Updated to only show contestants eligible for current phase (phase-specific scoring)
+- **API Endpoints**: Added routes for contestant advancement, phase eligibility, and progression management
+- **Automation**: Created initialization script to add all contestants to first phase automatically
+- **Flexible Selection**: Admin can select top 3, 5, 10, or custom selection of contestants to advance
+- **Elimination Tracking**: Non-selected contestants are marked as eliminated and excluded from future phases
+
 ### January 19, 2025 - Major Schema Migration: Shows/Criteria Workflow
 - **Breaking Change**: Migrated from scoring criteria/sub-criteria to shows/criteria structure
 - **New Workflow**: Shows → Phases (auto-generated) → Criteria (individual scoring elements)
