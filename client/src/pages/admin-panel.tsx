@@ -909,7 +909,6 @@ export default function AdminPanel() {
         description: "Failed to add show category.",
         variant: "destructive",
       });
-    }```python
     }
   };
 
@@ -1392,7 +1391,9 @@ export default function AdminPanel() {
                             <Badge variant={contestant.status === 'approved' ? 'default' : 'secondary'}>
                               {contestant.status}
                             </Badge>
-                            <Badge variant="outline">{contestant.talent}</Badge>
+                            {contestant.occupation && (
+                              <Badge variant="outline">{contestant.occupation}</Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1768,8 +1769,7 @@ export default function AdminPanel() {
                     />
                   </div>
                   <div>
-                    <```python
-Label htmlFor="contestant-occupation">Occupation</Label>
+                    <Label htmlFor="contestant-occupation">Occupation</Label>
                     <Input
                       id="contestant-occupation"
                       value={contestantForm.occupation}
