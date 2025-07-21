@@ -280,6 +280,7 @@ export default function AdminPanel() {
     maxScore: '10'
   });
   const [selectedShow, setSelectedShow] = useState<string | null>(null);
+  const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
   const [showCriteriaForm, setShowCriteriaForm] = useState(false);
   const [criteriaForm, setCriteriaForm] = useState({
     name: '',
@@ -1134,15 +1135,13 @@ export default function AdminPanel() {
                           </div>
                           <Button
                             onClick={() => {
-                              toast({
-                                title: "Feature Available",
-                                description: `Navigate to Scoring tab to add shows to ${phase.name}`,
-                              });
+                              setSelectedPhase(phase.id);
+                              setShowShowForm(true);
                             }}
                             disabled={!currentEvent}
                           >
                             <Plus className="h-4 w-4 mr-2" />
-                            Manage Shows for {phase.name}
+                            Add Show to {phase.name}
                           </Button>
                         </div>
                         
@@ -1905,7 +1904,79 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* This modal was removed - replaced with individual criteria management */}
+        {/* Create Show Form Modal */}
+        {showShowForm && selectedPhase && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle>Add Show to {phases?.find(p => p.id === selectedPhase)?.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="show-name">Show Name</Label>
+                    <Input
+                      id="show-name"
+                      value={showForm.name}
+                      onChange={(e) => setShowForm({ ...showForm, name: e.target.value })}
+                      placeholder="e.g., Interview, Talent, Evening Gown"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="show-description">Description</Label>
+                    <Textarea
+                      id="show-description"
+                      value={showForm.description}
+                      onChange={(e) => setShowForm({ ...showForm, description: e.target.value })}
+                      placeholder="e.g., Personal interview with judges"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="show-weight">Weight (%)</Label>
+                    <Input
+                      id="show-weight"
+                      type="number"
+                      value={showForm.weight}
+                      onChange={(e) => setShowForm({ ...showForm, weight: e.target.value })}
+                      placeholder="e.g., 25"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="show-maxScore">Max Score</Label>
+                    <Input
+                      id="show-maxScore"
+                      type="number"
+                      value={showForm.maxScore}
+                      onChange={(e) => setShowForm({ ...showForm, maxScore: e.target.value })}
+                      placeholder="10"
+                    />
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button 
+                      onClick={() => createShowMutation.mutate({
+                        ...showForm,
+                        phaseId: selectedPhase,
+                        weight: parseInt(showForm.weight),
+                        maxScore: parseInt(showForm.maxScore)
+                      })}
+                      disabled={createShowMutation.isPending}
+                    >
+                      {createShowMutation.isPending ? 'Creating...' : 'Create Show'}
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      setShowShowForm(false);
+                      setSelectedPhase(null);
+                      setShowForm({ name: '', description: '', weight: '', maxScore: '10' });
+                    }}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Create/Edit Phase Form Modal */}
         {showPhaseForm && (
