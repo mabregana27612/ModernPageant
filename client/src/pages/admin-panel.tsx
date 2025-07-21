@@ -1899,7 +1899,7 @@ export default function AdminPanel() {
                       onClick={() => {
                         const data = {
                           ...criteriaForm,
-                          weight: parseFloat(criteriaForm.weight) || 0,
+                          weight: criteriaForm.weight, // Keep as string
                           maxScore: parseInt(criteriaForm.maxScore) || 10
                         };
                         createCriteriaMutation.mutate(data);
