@@ -1114,197 +1114,134 @@ export default function AdminPanel() {
           </TabsList>
 
           <TabsContent value="scoring" className="space-y-6">
-            {/* Scoring Criteria Management */}
+            {/* Phase Selection for Show Management */}
             <Card>
               <CardHeader>
-                <CardTitle>Scoring Criteria Configuration</CardTitle>
-                <p className="text-gray-600">Define and customize scoring categories with weighted calculations</p>
+                <CardTitle>Show Management</CardTitle>
+                <p className="text-gray-600">Add shows and criteria to competition phases</p>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {shows?.map((criterion) => (
-                    <div key={criterion.id} className="border rounded-lg overflow-hidden">
-                      <div className="flex items-center justify-between p-4 bg-gray-50">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
-                            <div className="flex items-center space-x-2">
-                              <span className="font-medium">{criterion.name}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Label className="text-sm text-gray-600">Weight:</Label>
-                              <Input
-                                type="number"
-                                value={criterion.weight}
-                                min="0"
-                                max="100"
-                                className="w-16 text-center"
-                                onChange={(e) => {
-                                  const weight = parseFloat(e.target.value);
-                                  createCriteriaMutation.mutate({
-                                    id: criterion.id,
-                                    data: { weight }
-                                  });
-                                }}
-                              />
-                              <span className="text-sm text-gray-600">%</span>
-                            </div>
+                {phases && phases.length > 0 ? (
+                  <div className="space-y-6">
+                    {phases.sort((a, b) => a.order - b.order).map((phase) => (
+                      <div key={phase.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-semibold">{phase.name}</h3>
+                            <Badge variant={phase.status === 'active' ? 'default' : 'secondary'}>
+                              {phase.status}
+                            </Badge>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedShow(selectedShow === criterion.id ? null : criterion.id);
-                              }}
-                            >
-                              {selectedShow === criterion.id ? 'Hide' : 'Manage'} Criteria
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost"
-                              onClick={() => deleteShowMutation.mutate(criterion.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </div>
+                          <Button
+                            onClick={() => {
+                              toast({
+                                title: "Feature Available",
+                                description: `Navigate to Scoring tab to add shows to ${phase.name}`,
+                              });
+                            }}
+                            disabled={!currentEvent}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Manage Shows for {phase.name}
+                          </Button>
                         </div>
-                      </div>
-
-                      {/* Criteria section for selected show */}
-                      {selectedShow === criterion.id && (
-                        <div className="p-4 bg-white border-t">
-                          <div className="flex items-center justify-between mb-4">
-                            <h4 className="font-medium text-gray-700">Individual Criteria for {criterion.name}</h4>
-                            <Button 
-                              size="sm" 
-                              onClick={() => setShowCriteriaForm(true)}
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add Criteria
-                            </Button>
-                          </div>
-
-                          <div className="space-y-2">
-                            {(criteriaData as any)?.map?.((criteria: any) => (
-                              <div key={criteria.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-medium text-gray-700">Shows in this phase:</h4>
+                          {shows?.filter(show => show.phaseId === phase.id).map((show) => (
+                            <div key={show.id} className="border rounded-lg overflow-hidden bg-gray-50">
+                              <div className="flex items-center justify-between p-3">
                                 <div className="flex items-center space-x-4">
-                                  <span className="text-sm font-medium">{criteria.name}</span>
+                                  <span className="font-medium">{show.name}</span>
                                   <div className="flex items-center space-x-2">
-                                    <Label className="text-xs text-gray-600">Weight:</Label>
-                                    <span className="text-xs text-gray-700">{criteria.weight}%</span>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <Label className="text-xs text-gray-600">Max:</Label>
-                                    <span className="text-xs text-gray-700">{criteria.maxScore}</span>
+                                    <Label className="text-sm text-gray-600">Weight:</Label>
+                                    <span className="text-sm font-medium">{show.weight}%</span>
                                   </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <Button 
                                     size="sm" 
-                                    variant="ghost"
-                                    onClick={() => deleteCriteriaMutation.mutate(criteria.id)}
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedShow(selectedShow === show.id ? null : show.id);
+                                    }}
                                   >
-                                    <Trash2 className="h-3 w-3 text-red-500" />
+                                    {selectedShow === show.id ? 'Hide' : 'Manage'} Criteria
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost"
+                                    onClick={() => deleteShowMutation.mutate(show.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
                                   </Button>
                                 </div>
                               </div>
-                            ))}
 
-                            {(!criteriaData || !(criteriaData as any)?.length) && (
-                              <div className="text-center py-4 text-gray-500 text-sm">
-                                No criteria defined yet. Add some to break down this show category.
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                              {/* Criteria section for selected show */}
+                              {selectedShow === show.id && (
+                                <div className="p-4 bg-white border-t">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <h4 className="font-medium">Criteria for {show.name}</h4>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => {
+                                        toast({
+                                          title: "Feature Available",
+                                          description: "Use the existing show's Add Show button to create criteria.",
+                                        });
+                                      }}
+                                    >
+                                      <Plus className="h-4 w-4 mr-2" />
+                                      Add Criteria
+                                    </Button>
+                                  </div>
 
-                {/* Add New Show */}
-                <div className="mt-6 p-4 border-2 border-dashed border-gray-200 rounded-lg">
-                  <div className="flex items-center justify-center">
-                    <Button 
-                      variant="ghost" 
-                      className="text-gray-400 hover:text-gray-600"
-                      onClick={() => setShowShowForm(true)}
-                      disabled={!currentEventId}
-                    >
-                      <Plus className="h-5 w-5 mr-2" />
-                      Add New Show
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Competition Phase Management */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Competition Phases</CardTitle>
-                <p className="text-gray-600">Configure multi-phase competitions with score reset capabilities</p>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {phases?.map((phase) => (
-                    <div key={phase.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                          {phase.status === 'active' ? (
-                            <Play className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <Pause className="h-5 w-5 text-gray-400" />
+                                  <div className="grid gap-3">
+                                    {(criteriaData as any)?.filter?.((c: any) => c.showId === show.id)?.map((criteria: any) => (
+                                      <div key={criteria.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                                        <div className="flex items-center space-x-4">
+                                          <span className="font-medium">{criteria.name}</span>
+                                          <Badge variant="outline">{criteria.weight}% weight</Badge>
+                                          <Badge variant="secondary">Max: {criteria.maxScore}</Badge>
+                                        </div>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => deleteCriteriaMutation.mutate(criteria.id)}
+                                        >
+                                          <Trash2 className="h-4 w-4 text-red-500" />
+                                        </Button>
+                                      </div>
+                                    )) || []}
+                                    {(!(criteriaData as any)?.filter?.((c: any) => c.showId === show.id)?.length) && (
+                                      <div className="text-sm text-gray-500 italic p-3">
+                                        No criteria defined for this show yet.
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )) || []}
+                          {(!shows?.filter(show => show.phaseId === phase.id)?.length) && (
+                            <div className="text-sm text-gray-500 italic p-3 bg-gray-50 rounded">
+                              No shows configured for this phase yet. Click "Add Show" to create the first one.
+                            </div>
                           )}
-                          <span className="font-medium">{phase.name}</span>
                         </div>
-                        <Badge variant={phase.status === 'active' ? 'default' : 'secondary'}>
-                          {phase.status}
-                        </Badge>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={phase.resetScores || false}
-                            className="rounded border-gray-300 text-primary focus:ring-primary/20"
-                            onChange={(e) => {
-                              toast({
-                                title: "Feature Coming Soon",
-                                description: "Phase configuration will be available soon.",
-                              });
-                            }}
-                          />
-                          <span className="text-sm text-gray-600">Reset scores after phase</span>
-                        </label>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Phase Actions */}
-                <div className="mt-6 flex space-x-4">
-                  <Button onClick={() => {
-                    handleAdvancePhase();
-                  }} disabled={advancePhaseMutation.isPending}>
-                    <Play className="h-4 w-4 mr-2" />
-                    {advancePhaseMutation.isPending ? 'Advancing...' : 'Advance to Next Phase'}
-                  </Button>
-                  <Button variant="outline" onClick={() => {
-                    toast({
-                      title: "Feature Coming Soon",
-                      description: "Phase reset will be available soon.",
-                    });
-                  }}>
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Reset Current Phase
-                  </Button>
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <div className="text-sm">No phases available. Create phases first in the Phases tab.</div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Other tab contents would go here */}
           <TabsContent value="events">
             <Card>
               <CardHeader>
