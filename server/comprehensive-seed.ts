@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { events, contestants, judges, scoringCriteria, subCriteria, phases, scores, users } from "@shared/schema";
+import { events, contestants, judges, shows, criteria, phases, scores, users } from "@shared/schema";
 import { sql } from "drizzle-orm";
 
 async function seedComprehensiveData() {
@@ -10,8 +10,9 @@ async function seedComprehensiveData() {
     await db.delete(scores);
     await db.delete(judges);
     await db.delete(contestants);
-    await db.delete(scoringCriteria);
+    await db.delete(criteria);
     await db.delete(phases);
+    await db.delete(shows);
     await db.delete(events);
     await db.delete(users).where(sql`id LIKE 'judge%' OR id LIKE 'contestant%' OR id LIKE 'admin%'`);
 
@@ -193,32 +194,35 @@ async function seedComprehensiveData() {
     for (const event of createdEvents) {
       if (event.status === 'active') {
         // Active event - Miss Universe 2025
-        phaseData.push(
-          {
-            eventId: event.id,
-            name: "Preliminaries",
-            description: "Initial judging round with all contestants",
-            status: "completed",
-            order: 1,
-            resetScores: false
-          },
-          {
-            eventId: event.id,
-            name: "Semi-Finals",
-            description: "Top 10 contestants advance to semi-final round",
-            status: "completed",
-            order: 2,
-            resetScores: false
-          },
-          {
-            eventId: event.id,
-            name: "Finals",
-            description: "Top 5 contestants compete for the crown with reset scores",
-            status: "active",
-            order: 3,
-            resetScores: true
-          }
-        );
+        // For active event, we need to reference the created shows
+        if (event.id === activeEvent.id) {
+          phaseData.push(
+            {
+              eventId: event.id,
+              showId: createdShows[0].id, // Use first show for preliminaries
+              name: "Preliminaries",
+              order: 1,
+              status: "completed",
+              resetScores: false
+            },
+            {
+              eventId: event.id,
+              showId: createdShows[1].id, // Use second show for semi-finals
+              name: "Semi-Finals",
+              order: 2,
+              status: "completed",
+              resetScores: false
+            },
+            {
+              eventId: event.id,
+              showId: createdShows[2].id, // Use third show for finals
+              name: "Finals",
+              order: 3,
+              status: "active",
+              resetScores: true
+            }
+          );
+        }
       } else if (event.status === 'upcoming') {
         // Upcoming event - Miss World 2025
         phaseData.push(
@@ -273,44 +277,44 @@ async function seedComprehensiveData() {
     const createdPhases = await db.insert(phases).values(phaseData).returning();
     const finalsPhase = createdPhases.find(p => p.name === "Finals" && p.status === "active"); // Finals phase for active event
 
-    // Create comprehensive scoring criteria with different weights
+    // Create shows (main competition categories)
+    const showsData = [
+      { eventId: activeEvent.id, name: "Interview", description: "Communication skills, intelligence, and personality", weight: 30, order: 1 },
+      { eventId: activeEvent.id, name: "Talent", description: "Individual talent performance and stage presence", weight: 25, order: 2 },
+      { eventId: activeEvent.id, name: "Evening Gown", description: "Poise, elegance, and grace in formal wear", weight: 25, order: 3 },
+      { eventId: activeEvent.id, name: "Swimwear", description: "Confidence, fitness, and stage presence", weight: 20, order: 4 }
+    ];
+
+    const createdShows = await db.insert(shows).values(showsData).returning();
+
+    // Create criteria for each show
     const criteriaData = [
-      { eventId: activeEvent.id, name: "Interview", description: "Communication skills, intelligence, and personality", weight: 30, maxScore: 100 },
-      { eventId: activeEvent.id, name: "Talent", description: "Individual talent performance and stage presence", weight: 25, maxScore: 100 },
-      { eventId: activeEvent.id, name: "Evening Gown", description: "Poise, elegance, and grace in formal wear", weight: 25, maxScore: 100 },
-      { eventId: activeEvent.id, name: "Swimwear", description: "Confidence, fitness, and stage presence", weight: 20, maxScore: 100 }
+      // Interview criteria
+      { showId: createdShows[0].id, name: "Communication Skills", description: "Clarity, articulation, and verbal expression", weight: 35, maxScore: 10 },
+      { showId: createdShows[0].id, name: "Intelligence & Knowledge", description: "General knowledge and intellectual capacity", weight: 30, maxScore: 10 },
+      { showId: createdShows[0].id, name: "Confidence & Poise", description: "Self-assurance and composure under pressure", weight: 25, maxScore: 10 },
+      { showId: createdShows[0].id, name: "Personality & Charisma", description: "Natural charm and likability", weight: 10, maxScore: 10 },
+      
+      // Talent criteria
+      { showId: createdShows[1].id, name: "Skill Level", description: "Technical proficiency and mastery", weight: 40, maxScore: 10 },
+      { showId: createdShows[1].id, name: "Stage Presence", description: "Commanding attention and engagement", weight: 30, maxScore: 10 },
+      { showId: createdShows[1].id, name: "Creativity & Originality", description: "Uniqueness and creative expression", weight: 20, maxScore: 10 },
+      { showId: createdShows[1].id, name: "Overall Performance", description: "Entertainment value and execution", weight: 10, maxScore: 10 },
+      
+      // Evening Gown criteria
+      { showId: createdShows[2].id, name: "Elegance & Grace", description: "Sophisticated movement and bearing", weight: 35, maxScore: 10 },
+      { showId: createdShows[2].id, name: "Poise & Posture", description: "Confident stance and walk", weight: 30, maxScore: 10 },
+      { showId: createdShows[2].id, name: "Gown Selection", description: "Appropriate choice and fit", weight: 25, maxScore: 10 },
+      { showId: createdShows[2].id, name: "Overall Presentation", description: "Complete package and impression", weight: 10, maxScore: 10 },
+      
+      // Swimwear criteria
+      { showId: createdShows[3].id, name: "Physical Fitness", description: "Health and conditioning", weight: 40, maxScore: 10 },
+      { showId: createdShows[3].id, name: "Confidence", description: "Self-assurance and comfort", weight: 30, maxScore: 10 },
+      { showId: createdShows[3].id, name: "Stage Presence", description: "Commanding the stage", weight: 20, maxScore: 10 },
+      { showId: createdShows[3].id, name: "Overall Impression", description: "Complete presentation", weight: 10, maxScore: 10 },
     ];
 
-    const createdCriteria = await db.insert(scoringCriteria).values(criteriaData).returning();
-
-    // Create sub-criteria for each main criteria
-    const subCriteriaData = [
-      // Interview sub-criteria (30% total)
-      { criteriaId: createdCriteria[0].id, name: "Communication Skills", description: "Clarity, articulation, and verbal expression", weight: 35, maxScore: 10 },
-      { criteriaId: createdCriteria[0].id, name: "Intelligence & Knowledge", description: "General knowledge and intellectual capacity", weight: 30, maxScore: 10 },
-      { criteriaId: createdCriteria[0].id, name: "Confidence & Poise", description: "Self-assurance and composure under pressure", weight: 25, maxScore: 10 },
-      { criteriaId: createdCriteria[0].id, name: "Personality & Charisma", description: "Natural charm and likability", weight: 10, maxScore: 10 },
-      
-      // Talent sub-criteria (25% total)
-      { criteriaId: createdCriteria[1].id, name: "Skill Level", description: "Technical proficiency and mastery", weight: 40, maxScore: 10 },
-      { criteriaId: createdCriteria[1].id, name: "Stage Presence", description: "Commanding attention and engagement", weight: 30, maxScore: 10 },
-      { criteriaId: createdCriteria[1].id, name: "Creativity & Originality", description: "Uniqueness and creative expression", weight: 20, maxScore: 10 },
-      { criteriaId: createdCriteria[1].id, name: "Overall Performance", description: "Entertainment value and execution", weight: 10, maxScore: 10 },
-      
-      // Evening Gown sub-criteria (25% total)
-      { criteriaId: createdCriteria[2].id, name: "Elegance & Grace", description: "Sophisticated movement and bearing", weight: 35, maxScore: 10 },
-      { criteriaId: createdCriteria[2].id, name: "Poise & Posture", description: "Confident stance and walk", weight: 30, maxScore: 10 },
-      { criteriaId: createdCriteria[2].id, name: "Gown Selection", description: "Appropriate choice and fit", weight: 25, maxScore: 10 },
-      { criteriaId: createdCriteria[2].id, name: "Overall Presentation", description: "Complete package and impression", weight: 10, maxScore: 10 },
-      
-      // Swimwear sub-criteria (20% total)
-      { criteriaId: createdCriteria[3].id, name: "Physical Fitness", description: "Health and conditioning", weight: 40, maxScore: 10 },
-      { criteriaId: createdCriteria[3].id, name: "Confidence", description: "Self-assurance and comfort", weight: 30, maxScore: 10 },
-      { criteriaId: createdCriteria[3].id, name: "Stage Presence", description: "Commanding the stage", weight: 20, maxScore: 10 },
-      { criteriaId: createdCriteria[3].id, name: "Overall Impression", description: "Complete presentation", weight: 10, maxScore: 10 },
-    ];
-
-    await db.insert(subCriteria).values(subCriteriaData).returning();
+    const createdCriteria = await db.insert(criteria).values(criteriaData).returning();
 
     // Create realistic scoring data for finals phase
     const scoreData = [];
@@ -358,45 +362,57 @@ async function seedComprehensiveData() {
         for (let j = 0; j < createdJudges.length; j++) {
           const judge = createdJudges[j];
           
-          // Interview scores
-          scoreData.push({
-            eventId: activeEvent.id,
-            phaseId: finalsPhase.id,
-            contestantId: contestant.id,
-            judgeId: judge.id,
-            criteriaId: createdCriteria[0].id,
-            score: scores.interview[j]
-          });
+          // Interview scores (first 4 criteria belong to Interview show)
+          for (let k = 0; k < 4; k++) {
+            scoreData.push({
+              eventId: activeEvent.id,
+              phaseId: finalsPhase.id,
+              contestantId: contestant.id,
+              judgeId: judge.id,
+              showId: createdShows[0].id,
+              criteriaId: createdCriteria[k].id,
+              score: scores.interview[j]
+            });
+          }
           
-          // Talent scores
-          scoreData.push({
-            eventId: activeEvent.id,
-            phaseId: finalsPhase.id,
-            contestantId: contestant.id,
-            judgeId: judge.id,
-            criteriaId: createdCriteria[1].id,
-            score: scores.talent[j]
-          });
+          // Talent scores (next 4 criteria belong to Talent show)
+          for (let k = 4; k < 8; k++) {
+            scoreData.push({
+              eventId: activeEvent.id,
+              phaseId: finalsPhase.id,
+              contestantId: contestant.id,
+              judgeId: judge.id,
+              showId: createdShows[1].id,
+              criteriaId: createdCriteria[k].id,
+              score: scores.talent[j]
+            });
+          }
           
-          // Evening Gown scores
-          scoreData.push({
-            eventId: activeEvent.id,
-            phaseId: finalsPhase.id,
-            contestantId: contestant.id,
-            judgeId: judge.id,
-            criteriaId: createdCriteria[2].id,
-            score: scores.eveningGown[j]
-          });
+          // Evening Gown scores (next 4 criteria belong to Evening Gown show)
+          for (let k = 8; k < 12; k++) {
+            scoreData.push({
+              eventId: activeEvent.id,
+              phaseId: finalsPhase.id,
+              contestantId: contestant.id,
+              judgeId: judge.id,
+              showId: createdShows[2].id,
+              criteriaId: createdCriteria[k].id,
+              score: scores.eveningGown[j]
+            });
+          }
           
-          // Swimwear scores
-          scoreData.push({
-            eventId: activeEvent.id,
-            phaseId: finalsPhase.id,
-            contestantId: contestant.id,
-            judgeId: judge.id,
-            criteriaId: createdCriteria[3].id,
-            score: scores.swimwear[j]
-          });
+          // Swimwear scores (last 4 criteria belong to Swimwear show)
+          for (let k = 12; k < 16; k++) {
+            scoreData.push({
+              eventId: activeEvent.id,
+              phaseId: finalsPhase.id,
+              contestantId: contestant.id,
+              judgeId: judge.id,
+              showId: createdShows[3].id,
+              criteriaId: createdCriteria[k].id,
+              score: scores.swimwear[j]
+            });
+          }
         }
       }
     }
@@ -407,7 +423,7 @@ async function seedComprehensiveData() {
     console.log(`Created ${createdEvents.length} events`);
     console.log(`Created ${createdContestants.length} contestants`);
     console.log(`Created ${createdJudges.length} judges`);
-    console.log(`Created ${createdCriteria.length} scoring criteria`);
+    console.log(`Created ${createdShows.length} shows and ${createdCriteria.length} criteria`);
     console.log(`Created ${createdPhases.length} phases`);
     console.log(`Created ${scoreData.length} scores`);
     console.log(`\n🎯 Active Event: ${activeEvent.name}`);
