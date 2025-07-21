@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Trophy, Calendar, Settings, Crown, CalendarDays } from "lucide-react";
+import { Users, Trophy, Calendar, Settings, Crown, CalendarDays, BarChart3, Plus, Clock } from "lucide-react";
 import { Link } from "wouter";
 import type { Event, Contestant, Judge } from "@shared/schema";
 
