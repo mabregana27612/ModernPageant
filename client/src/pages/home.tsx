@@ -189,9 +189,11 @@ export default function Home() {
                         </Button>
                       )}
                       {isJudge && (
-                        <Button size="sm" onClick={() => window.location.href = '/judge-dashboard'}>
-                          Judge
-                        </Button>
+                        <Link href="/judge-dashboard">
+                          <Button size="sm">
+                            Judge
+                          </Button>
+                        </Link>
                       )}
                       <Button size="sm" variant="outline">
                         View
