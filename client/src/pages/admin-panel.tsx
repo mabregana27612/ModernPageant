@@ -45,7 +45,7 @@ function JudgeScoresView({ currentEventId }: { currentEventId: string | undefine
   const { data: allScores } = useQuery<any[]>({
     queryKey: ['/api/events', currentEventId, 'scores'],
     queryFn: async () => {
-      const response = await fetch(`/api/events/${currentEventId}/scores${selectedPhase ? `?phaseId=${selectedPhase}` : ''}`);
+      const response = await fetch(`/api/events/${currentEventId}/scores${selectedPhase && selectedPhase !== 'all' ? `?phaseId=${selectedPhase}` : ''}`);
       if (!response.ok) throw new Error('Failed to fetch scores');
       return response.json();
     },
@@ -58,7 +58,7 @@ function JudgeScoresView({ currentEventId }: { currentEventId: string | undefine
   // Filter scores by selected judge if one is selected
   const filteredScores = allScores?.filter(score => 
     (!selectedJudge || score.judgeId === selectedJudge) &&
-    (!selectedPhase || score.phaseId === currentPhaseId)
+    (!selectedPhase || selectedPhase === 'all' || score.phaseId === currentPhaseId)
   ) || [];
 
   // Group scores by judge
@@ -116,7 +116,7 @@ function JudgeScoresView({ currentEventId }: { currentEventId: string | undefine
                   <SelectValue placeholder="All phases" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All phases</SelectItem>
+                  <SelectItem value="all">All phases</SelectItem>
                   {phases?.map((phase) => (
                     <SelectItem key={phase.id} value={phase.id}>
                       {phase.name}
