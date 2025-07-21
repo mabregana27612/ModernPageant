@@ -564,6 +564,7 @@ export default function AdminPanel() {
   // Criteria mutations for Shows/Criteria structure
   const createCriteriaMutation = useMutation({
     mutationFn: async (data: any) => {
+      if (!selectedShow) throw new Error("No show selected");
       await apiRequest('POST', `/api/shows/${selectedShow}/criteria`, data);
     },
     onSuccess: () => {
@@ -1185,10 +1186,8 @@ export default function AdminPanel() {
                                     <Button
                                       size="sm"
                                       onClick={() => {
-                                        toast({
-                                          title: "Feature Available",
-                                          description: "Use the existing show's Add Show button to create criteria.",
-                                        });
+                                        setSelectedShow(show.id);
+                                        setShowCriteriaForm(true);
                                       }}
                                     >
                                       <Plus className="h-4 w-4 mr-2" />
@@ -1840,11 +1839,14 @@ export default function AdminPanel() {
         )}
 
         {/* Create Criteria Form Modal */}
-        {showCriteriaForm && (
+        {showCriteriaForm && selectedShow && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <Card className="w-full max-w-md">
               <CardHeader>
                 <CardTitle>Add Scoring Criteria</CardTitle>
+                <p className="text-sm text-gray-600">
+                  Adding criteria to: {shows?.find(s => s.id === selectedShow)?.name}
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -1854,7 +1856,7 @@ export default function AdminPanel() {
                       id="criteria-name"
                       value={criteriaForm.name}
                       onChange={(e) => setCriteriaForm({ ...criteriaForm, name: e.target.value })}
-                      placeholder="e.g., Interview, Talent, Evening Gown"
+                      placeholder="e.g., Poise & Confidence, Technique"
                     />
                   </div>
                   <div>
@@ -1863,7 +1865,7 @@ export default function AdminPanel() {
                       id="criteria-description"
                       value={criteriaForm.description}
                       onChange={(e) => setCriteriaForm({ ...criteriaForm, description: e.target.value })}
-                      placeholder="e.g., Communication skills and personality"
+                      placeholder="e.g., Confidence and stage presence"
                       rows={3}
                     />
                   </div>
@@ -1875,6 +1877,9 @@ export default function AdminPanel() {
                       value={criteriaForm.weight}
                       onChange={(e) => setCriteriaForm({ ...criteriaForm, weight: e.target.value })}
                       placeholder="e.g., 25"
+                      min="0"
+                      max="100"
+                      step="0.1"
                     />
                   </div>
                   <div>
@@ -1884,17 +1889,29 @@ export default function AdminPanel() {
                       type="number"
                       value={criteriaForm.maxScore}
                       onChange={(e) => setCriteriaForm({ ...criteriaForm, maxScore: e.target.value })}
-                      placeholder="100"
+                      placeholder="10"
+                      min="1"
+                      max="100"
                     />
                   </div>
                   <div className="flex space-x-2">
                     <Button 
-                      onClick={() => createCriteriaMutation.mutate(criteriaForm)}
-                      disabled={createCriteriaMutation.isPending}
+                      onClick={() => {
+                        const data = {
+                          ...criteriaForm,
+                          weight: parseFloat(criteriaForm.weight) || 0,
+                          maxScore: parseInt(criteriaForm.maxScore) || 10
+                        };
+                        createCriteriaMutation.mutate(data);
+                      }}
+                      disabled={createCriteriaMutation.isPending || !criteriaForm.name}
                     >
                       {createCriteriaMutation.isPending ? 'Creating...' : 'Create Criteria'}
                     </Button>
-                    <Button variant="outline" onClick={() => setShowCriteriaForm(false)}>
+                    <Button variant="outline" onClick={() => {
+                      setShowCriteriaForm(false);
+                      setCriteriaForm({ name: '', description: '', weight: '', maxScore: '10' });
+                    }}>
                       Cancel
                     </Button>
                   </div>
