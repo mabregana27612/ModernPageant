@@ -13,9 +13,9 @@ export default function Home() {
     queryKey: ['/api/events'],
   });
 
-  const isAdmin = user?.role === 'admin';
-  const isJudge = user?.role === 'judge';
-  const isContestant = user?.role === 'contestant';
+  const isAdmin = (user as any)?.role === 'admin';
+  const isJudge = (user as any)?.role === 'judge';
+  const isContestant = (user as any)?.role === 'contestant';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -25,7 +25,7 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-playfair font-bold text-gray-900">
-                Welcome back, {user?.firstName || 'User'}
+                Welcome back, {(user as any)?.firstName || 'User'}
               </h1>
               <p className="text-gray-600 mt-2">
                 {isAdmin && "Manage your pageant events and oversee competitions"}
@@ -35,11 +35,11 @@ export default function Home() {
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="secondary" className="px-3 py-1">
-                {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
+                {(user as any)?.role?.charAt(0).toUpperCase() + (user as any)?.role?.slice(1)}
               </Badge>
-              {user?.profileImageUrl && (
+              {(user as any)?.profileImageUrl && (
                 <img 
-                  src={user.profileImageUrl} 
+                  src={(user as any).profileImageUrl} 
                   alt="Profile" 
                   className="h-10 w-10 rounded-full object-cover border-2 border-gray-200"
                 />
