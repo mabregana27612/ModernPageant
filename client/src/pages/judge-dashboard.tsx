@@ -34,6 +34,20 @@ export default function JudgeDashboard() {
     }
   }, [events, selectedEvent]);
 
+  // Populate scores from existing database scores
+  useEffect(() => {
+    if (existingScores && contestants && criteria) {
+      const scoreMap: Record<string, number> = {};
+      
+      existingScores.forEach((score: any) => {
+        const scoreKey = `${score.contestantId}-${score.criteriaId}`;
+        scoreMap[scoreKey] = parseFloat(score.score);
+      });
+      
+      setScores(scoreMap);
+    }
+  }, [existingScores, contestants, criteria]);
+
   const { data: contestants } = useQuery<(Contestant & { user: User })[]>({
     queryKey: ['/api/events', selectedEvent, 'contestants'],
     enabled: !!selectedEvent,
@@ -70,6 +84,12 @@ export default function JudgeDashboard() {
     queryKey: ['/api/events', selectedEvent, 'scoring-progress'],
     enabled: !!selectedEvent,
     refetchInterval: 5000, // Refresh every 5 seconds
+  });
+
+  // Fetch existing scores to populate the form
+  const { data: existingScores } = useQuery<any[]>({
+    queryKey: ['/api/events', selectedEvent, 'scores'],
+    enabled: !!selectedEvent && !!user,
   });
 
   const scoreMutation = useMutation({
