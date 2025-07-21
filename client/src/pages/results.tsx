@@ -2,13 +2,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Medal, Crown, BarChart3, PieChart, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trophy, Medal, Crown, BarChart3, PieChart, Users, Calculator, Eye } from "lucide-react";
 import { useState } from "react";
 import type { Event } from "@shared/schema";
 import ResultsTable from "@/components/results-table";
+import JudgeScoringBreakdown from "@/components/judge-scoring-breakdown";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Results() {
   const [selectedEvent, setSelectedEvent] = useState<string>("");
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   const { data: events } = useQuery<Event[]>({
     queryKey: ['/api/events'],
@@ -118,9 +124,29 @@ export default function Results() {
           </div>
         )}
 
-        {/* Results by Phase and Show */}
-        {organizedResults.length > 0 ? (
-          <div className="space-y-8">
+        {/* Results Tabs */}
+        <Tabs defaultValue="results" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="results">Competition Results</TabsTrigger>
+            <TabsTrigger value="judging" className={!isAdmin ? "opacity-50 cursor-not-allowed" : ""}>
+              {isAdmin ? (
+                <span className="flex items-center gap-2">
+                  <Calculator className="h-4 w-4" />
+                  Judge Scoring Details
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  Admin Only
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="results" className="space-y-8">
+            {/* Results by Phase and Show */}
+            {organizedResults.length > 0 ? (
+              <div className="space-y-8">
             {organizedResults.map((phaseResult) => {
               const { phase, results } = phaseResult;
               
@@ -291,14 +317,23 @@ export default function Results() {
                 </div>
               );
             })}
-          </div>
-        ) : (
-          <Card className="p-8 text-center">
-            <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Results Available</h3>
-            <p className="text-gray-600">Results will be available once judging is complete.</p>
-          </Card>
-        )}
+              </div>
+            ) : (
+              <Card className="p-8 text-center">
+                <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Results Available</h3>
+                <p className="text-gray-600">Results will be available once judging is complete.</p>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="judging" className="space-y-6">
+            <JudgeScoringBreakdown 
+              eventId={currentEvent.id} 
+              phaseId={phases?.find(p => p.status === 'active')?.id}
+            />
+          </TabsContent>
+        </Tabs>
 
         {/* Analytics Charts */}
         <div className="grid md:grid-cols-2 gap-6 mt-8">
