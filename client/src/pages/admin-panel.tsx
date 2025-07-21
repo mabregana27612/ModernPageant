@@ -293,6 +293,7 @@ export default function AdminPanel() {
     name: '',
     description: '',
     order: '',
+    showId: '',
     resetScores: false
   });
 
@@ -763,7 +764,7 @@ export default function AdminPanel() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'phases'] });
       setShowPhaseForm(false);
-      setPhaseForm({ name: '', description: '', order: '', resetScores: false });
+      setPhaseForm({ name: '', description: '', order: '', showId: '', resetScores: false });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -797,7 +798,7 @@ export default function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'phases'] });
       setEditingPhase(null);
       setShowPhaseForm(false);
-      setPhaseForm({ name: '', description: '', order: '', resetScores: false });
+      setPhaseForm({ name: '', description: '', order: '', showId: '', resetScores: false });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -907,6 +908,7 @@ export default function AdminPanel() {
       toast({
         title: "Error",
         description: "Failed to add show category.",
+```python
         variant: "destructive",
       });
     }
@@ -972,6 +974,7 @@ export default function AdminPanel() {
       name: phase.name,
       description: '',
       order: phase.order.toString(),
+      showId: phase.showId || '',
       resetScores: phase.resetScores || false
     });
     setShowPhaseForm(true);
@@ -1765,6 +1768,7 @@ export default function AdminPanel() {
                     />
                   </div>
                   <div>
+                    ```python
                     <Label htmlFor="contestant-occupation">Occupation</Label>
                     <Input
                       id="contestant-occupation"
@@ -2007,6 +2011,7 @@ export default function AdminPanel() {
                             name: phaseForm.name,
                             description: phaseForm.description,
                             order: parseInt(phaseForm.order),
+                            showId: phaseForm.showId,
                             resetScores: phaseForm.resetScores,
                             status: 'pending'
                           });
@@ -2022,7 +2027,7 @@ export default function AdminPanel() {
                     <Button variant="outline" onClick={() => {
                       setShowPhaseForm(false);
                       setEditingPhase(null);
-                      setPhaseForm({ name: '', description: '', order: '', resetScores: false });
+                      setPhaseForm({ name: '', description: '', order: '', showId: '', resetScores: false });
                     }}>
                       Cancel
                     </Button>
