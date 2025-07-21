@@ -1488,72 +1488,97 @@ export default function AdminPanel() {
                 <div className="space-y-4">
                   {phases && phases.length > 0 ? (
                     phases.sort((a, b) => a.order - b.order).map((phase, index) => (
-                      <div key={phase.id} className={`flex items-center justify-between p-4 rounded-lg border ${
+                      <div key={phase.id} className={`p-4 rounded-lg border ${
                         phase.status === 'active' ? 'bg-primary/5 border-primary/20' : 'bg-gray-50'
                       }`}>
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-2">
-                            {phase.status === 'active' ? (
-                              <Play className="h-5 w-5 text-green-500" />
-                            ) : phase.status === 'completed' ? (
-                              <Trophy className="h-5 w-5 text-yellow-500" />
-                            ) : (
-                              <Pause className="h-5 w-5 text-gray-400" />
-                            )}
-                            <div>
-                              <span className="font-medium">{phase.name}</span>
-                              {phase.description && (
-                                <p className="text-sm text-gray-600">{phase.description}</p>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-2">
+                              {phase.status === 'active' ? (
+                                <Play className="h-5 w-5 text-green-500" />
+                              ) : phase.status === 'completed' ? (
+                                <Trophy className="h-5 w-5 text-yellow-500" />
+                              ) : (
+                                <Pause className="h-5 w-5 text-gray-400" />
                               )}
+                              <div>
+                                <span className="font-medium">{phase.name}</span>
+                                {phase.description && (
+                                  <p className="text-sm text-gray-600">{phase.description}</p>
+                                )}
+                              </div>
+                            </div>
+                            <Badge variant={phase.status === 'active' ? 'default' : 'secondary'}>
+                              {phase.status}
+                            </Badge>
+                            <span className="text-sm text-gray-600">Order: {phase.order}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                checked={phase.resetScores || false}
+                                className="rounded border-gray-300 text-primary focus:ring-primary/20"
+                                disabled
+                              />
+                              <span className="text-sm text-gray-600">Reset scores</span>
+                            </label>
+                            <div className="flex items-center space-x-1 ml-4">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleMovePhase(phase.id, 'up')}
+                                disabled={index === 0 || reorderPhasesMutation.isPending}
+                              >
+                                ↑
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleMovePhase(phase.id, 'down')}
+                                disabled={index === phases.length - 1 || reorderPhasesMutation.isPending}
+                              >
+                                ↓
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditPhase(phase)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeletePhase(phase)}
+                                disabled={deletePhaseMutation.isPending}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
-                          <Badge variant={phase.status === 'active' ? 'default' : 'secondary'}>
-                            {phase.status}
-                          </Badge>
-                          <span className="text-sm text-gray-600">Order: {phase.order}</span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <label className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={phase.resetScores || false}
-                              className="rounded border-gray-300 text-primary focus:ring-primary/20"
-                              disabled
-                            />
-                            <span className="text-sm text-gray-600">Reset scores</span>
-                          </label>
-                          <div className="flex items-center space-x-1 ml-4">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleMovePhase(phase.id, 'up')}
-                              disabled={index === 0 || reorderPhasesMutation.isPending}
-                            >
-                              ↑
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleMovePhase(phase.id, 'down')}
-                              disabled={index === phases.length - 1 || reorderPhasesMutation.isPending}
-                            >
-                              ↓
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditPhase(phase)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeletePhase(phase)}
-                              disabled={deletePhaseMutation.isPending}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                        
+                        {/* Shows for this phase */}
+                        <div className="mt-3 p-3 bg-white rounded border">
+                          <h5 className="text-sm font-medium text-gray-700 mb-2">Shows in this phase:</h5>
+                          <div className="space-y-2">
+                            {shows?.filter(show => show.phaseId === phase.id).map(show => (
+                              <div key={show.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                <div>
+                                  <span className="text-sm font-medium">{show.name}</span>
+                                  <span className="text-xs text-gray-600 ml-2">({show.weight}% weight)</span>
+                                </div>
+                                <Badge variant="outline" className="text-xs">
+                                  {(criteriaData as any)?.filter?.((c: any) => c.showId === show.id)?.length || 0} criteria
+                                </Badge>
+                              </div>
+                            )) || []}
+                            {(!shows?.filter(show => show.phaseId === phase.id)?.length) && (
+                              <div className="text-xs text-gray-500 italic">
+                                No shows configured for this phase. Use the Scoring tab to add shows.
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

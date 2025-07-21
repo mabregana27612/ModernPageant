@@ -2,32 +2,69 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Users, Trophy, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, MapPin, Users, Trophy, ChevronDown, ChevronUp, Star } from "lucide-react";
 import { useState } from "react";
-import type { Event, ScoringCriteria, SubCriteria } from "@shared/schema";
+import type { Event, Show, Criteria, Phase } from "@shared/schema";
 
-function SubCriteriaDisplay({ criteriaId }: { criteriaId: string }) {
-  const { data: subCriteria } = useQuery<SubCriteria[]>({
-    queryKey: ['/api/criteria', criteriaId, 'sub-criteria'],
+function ShowDisplay({ eventId, phaseId }: { eventId: string; phaseId: string }) {
+  const { data: shows } = useQuery<Show[]>({
+    queryKey: ['/api/events', eventId, 'shows'],
+    enabled: !!eventId
   });
 
-  if (!subCriteria || subCriteria.length === 0) {
+  const phaseShows = shows?.filter(show => show.phaseId === phaseId) || [];
+
+  if (!phaseShows || phaseShows.length === 0) {
     return (
       <div className="text-xs text-gray-500 italic">
-        No sub-criteria breakdown available
+        No shows configured for this phase
       </div>
     );
   }
 
   return (
-    <>
-      <p className="text-xs text-gray-500 mb-1">Sub-criteria breakdown:</p>
+    <div className="space-y-3">
+      {phaseShows.map((show) => (
+        <div key={show.id} className="border-l-2 border-primary/30 pl-3">
+          <div className="flex items-center justify-between">
+            <h4 className="font-semibold text-sm flex items-center gap-2">
+              <Star className="h-4 w-4 text-primary" />
+              {show.name}
+            </h4>
+            <Badge variant="secondary" className="text-xs">
+              {show.weight}% weight
+            </Badge>
+          </div>
+          <p className="text-xs text-gray-600 mt-1">{show.description}</p>
+          <CriteriaDisplay showId={show.id} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CriteriaDisplay({ showId }: { showId: string }) {
+  const { data: criteria } = useQuery<Criteria[]>({
+    queryKey: ['/api/shows', showId, 'criteria'],
+    enabled: !!showId
+  });
+
+  if (!criteria || criteria.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-2 ml-4">
+      <p className="text-xs text-gray-500 mb-1">Scoring criteria:</p>
       <div className="text-xs text-gray-600 space-y-1">
-        {subCriteria.map((sub) => (
-          <div key={sub.id}>• {sub.name} ({sub.weight}%)</div>
+        {criteria.map((criterion) => (
+          <div key={criterion.id} className="flex justify-between">
+            <span>• {criterion.name}</span>
+            <span className="text-gray-400">({criterion.weight}%)</span>
+          </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -38,8 +75,8 @@ export default function ContestsPage() {
 
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
 
-  const { data: criteria } = useQuery<ScoringCriteria[]>({
-    queryKey: ['/api/events', expandedEvent, 'criteria'],
+  const { data: phases } = useQuery<Phase[]>({
+    queryKey: ['/api/events', expandedEvent, 'phases'],
     enabled: !!expandedEvent,
   });
 
@@ -123,21 +160,34 @@ export default function ContestsPage() {
                         )}
                       </Button>
 
-                      {expandedEvent === event.id && criteria && (
+                      {expandedEvent === event.id && phases && (
                         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                          <h4 className="font-semibold mb-3">Scoring Criteria ({criteria.length} categories)</h4>
-                          <div className="space-y-3">
-                            {criteria.map((criterion) => (
-                              <div key={criterion.id} className="bg-white p-3 rounded border">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="font-medium">{criterion.name}</span>
-                                  <Badge variant="outline">{criterion.weight}%</Badge>
+                          <h4 className="font-semibold mb-3">Competition Phases ({phases.length} phases)</h4>
+                          <div className="space-y-4">
+                            {phases.map((phase) => (
+                              <div key={phase.id} className="bg-white p-4 rounded border">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{phase.name}</span>
+                                    <Badge 
+                                      variant={
+                                        phase.status === 'active' ? 'default' : 
+                                        phase.status === 'completed' ? 'secondary' : 'outline'
+                                      }
+                                      className="text-xs"
+                                    >
+                                      {phase.status}
+                                    </Badge>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    Phase {phase.order}
+                                  </Badge>
                                 </div>
-                                <p className="text-sm text-gray-600 mb-2">{criterion.description}</p>
-
-                                {/* Show sub-criteria if available */}
-                                <div className="mt-2 pl-4 border-l-2 border-gray-200">
-                                  <SubCriteriaDisplay criteriaId={criterion.id} /></div>
+                                
+                                <div className="text-sm text-gray-600 mb-3">
+                                  <h5 className="font-medium mb-2">Shows for this phase:</h5>
+                                  <ShowDisplay eventId={event.id} phaseId={phase.id} />
+                                </div>
                               </div>
                             ))}
                           </div>
