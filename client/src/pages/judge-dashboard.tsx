@@ -49,14 +49,14 @@ export default function JudgeDashboard() {
     enabled: !!selectedEvent,
   });
 
+  const currentShow = shows?.[currentShowIndex];
+
   const { data: criteria } = useQuery<any[]>({
     queryKey: ['/api/shows', currentShow?.id, 'criteria'],
     enabled: !!currentShow?.id,
   });
 
   const currentCriteria = criteria?.[currentCriteriaIndex];
-
-  const currentShow = shows?.[currentShowIndex];
 
   const { data: scoringProgress } = useQuery<{
     totalRequired: number;
