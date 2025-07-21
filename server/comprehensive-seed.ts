@@ -6,13 +6,14 @@ async function seedComprehensiveData() {
   try {
     console.log("Creating comprehensive sample data...");
 
-    // Clean up existing data
+    // Clear existing data in correct order to avoid foreign key constraints
     await db.delete(scores);
+    await db.delete(contestantPhases);
+    await db.delete(phases);
+    await db.delete(criteria);
+    await db.delete(shows);
     await db.delete(judges);
     await db.delete(contestants);
-    await db.delete(criteria);
-    await db.delete(phases);
-    await db.delete(shows);
     await db.delete(events);
     await db.delete(users).where(sql`id LIKE 'judge%' OR id LIKE 'contestant%' OR id LIKE 'admin%'`);
 
@@ -20,7 +21,7 @@ async function seedComprehensiveData() {
     const userData = [
       // Admin users
       { id: "admin1", email: "admin@pageant.com", firstName: "Jessica", lastName: "Martinez", profileImageUrl: "https://images.unsplash.com/photo-1494790108755-2616b612b494?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200" },
-      
+
       // Judge users  
       { id: "judge1", email: "sarah.johnson@judges.com", firstName: "Sarah", lastName: "Johnson", profileImageUrl: "https://images.unsplash.com/photo-1494790108755-2616b612b494?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200" },
       { id: "judge2", email: "michael.chen@judges.com", firstName: "Michael", lastName: "Chen", profileImageUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200" },
@@ -189,7 +190,7 @@ async function seedComprehensiveData() {
 
     // Create multiple phases for all events
     const phaseData = [];
-    
+
     // Create phases for each event
     for (const event of createdEvents) {
       if (event.status === 'active') {
@@ -294,19 +295,19 @@ async function seedComprehensiveData() {
       { showId: createdShows[0].id, name: "Intelligence & Knowledge", description: "General knowledge and intellectual capacity", weight: 30, maxScore: 10 },
       { showId: createdShows[0].id, name: "Confidence & Poise", description: "Self-assurance and composure under pressure", weight: 25, maxScore: 10 },
       { showId: createdShows[0].id, name: "Personality & Charisma", description: "Natural charm and likability", weight: 10, maxScore: 10 },
-      
+
       // Talent criteria
       { showId: createdShows[1].id, name: "Skill Level", description: "Technical proficiency and mastery", weight: 40, maxScore: 10 },
       { showId: createdShows[1].id, name: "Stage Presence", description: "Commanding attention and engagement", weight: 30, maxScore: 10 },
       { showId: createdShows[1].id, name: "Creativity & Originality", description: "Uniqueness and creative expression", weight: 20, maxScore: 10 },
       { showId: createdShows[1].id, name: "Overall Performance", description: "Entertainment value and execution", weight: 10, maxScore: 10 },
-      
+
       // Evening Gown criteria
       { showId: createdShows[2].id, name: "Elegance & Grace", description: "Sophisticated movement and bearing", weight: 35, maxScore: 10 },
       { showId: createdShows[2].id, name: "Poise & Posture", description: "Confident stance and walk", weight: 30, maxScore: 10 },
       { showId: createdShows[2].id, name: "Gown Selection", description: "Appropriate choice and fit", weight: 25, maxScore: 10 },
       { showId: createdShows[2].id, name: "Overall Presentation", description: "Complete package and impression", weight: 10, maxScore: 10 },
-      
+
       // Swimwear criteria
       { showId: createdShows[3].id, name: "Physical Fitness", description: "Health and conditioning", weight: 40, maxScore: 10 },
       { showId: createdShows[3].id, name: "Confidence", description: "Self-assurance and comfort", weight: 30, maxScore: 10 },
@@ -318,7 +319,7 @@ async function seedComprehensiveData() {
 
     // Create realistic scoring data for finals phase
     const scoreData = [];
-    
+
     // Realistic score ranges for each contestant (top 5 finalists)
     const finalistScores = [
       { // Contestant 1 - Winner (Isabella Rodriguez)
@@ -358,10 +359,10 @@ async function seedComprehensiveData() {
       for (let i = 0; i < 5; i++) {
         const contestant = createdContestants[i];
         const scores = finalistScores[i];
-        
+
         for (let j = 0; j < createdJudges.length; j++) {
           const judge = createdJudges[j];
-          
+
           // Interview scores (first 4 criteria belong to Interview show)
           for (let k = 0; k < 4; k++) {
             scoreData.push({
@@ -374,7 +375,7 @@ async function seedComprehensiveData() {
               score: scores.interview[j]
             });
           }
-          
+
           // Talent scores (next 4 criteria belong to Talent show)
           for (let k = 4; k < 8; k++) {
             scoreData.push({
@@ -387,7 +388,7 @@ async function seedComprehensiveData() {
               score: scores.talent[j]
             });
           }
-          
+
           // Evening Gown scores (next 4 criteria belong to Evening Gown show)
           for (let k = 8; k < 12; k++) {
             scoreData.push({
@@ -400,7 +401,7 @@ async function seedComprehensiveData() {
               score: scores.eveningGown[j]
             });
           }
-          
+
           // Swimwear scores (last 4 criteria belong to Swimwear show)
           for (let k = 12; k < 16; k++) {
             scoreData.push({
