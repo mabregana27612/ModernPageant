@@ -169,12 +169,14 @@ export default function JudgeDashboard() {
       }
       
       setCurrentContestantIndex(prev => prev + 1);
+      setCurrentCriteriaIndex(0); // Reset to first criteria
     }
   };
 
   const handlePrevContestant = () => {
     if (currentContestantIndex > 0) {
       setCurrentContestantIndex(prev => prev - 1);
+      setCurrentCriteriaIndex(0); // Reset to first criteria
     }
   };
 
