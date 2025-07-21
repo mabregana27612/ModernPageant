@@ -1,15 +1,14 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, Trophy, BarChart3, Crown, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CalendarDays, Users, Trophy, Clock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import type { Event } from "@shared/schema";
 
 export default function Home() {
   const { user } = useAuth();
-  
+
   const { data: events, isLoading } = useQuery<Event[]>({
     queryKey: ['/api/events'],
   });
@@ -70,7 +69,7 @@ export default function Home() {
               </Card>
             </Link>
           )}
-          
+
           {(isJudge || isAdmin) && (
             <Link href="/judge-dashboard">
               <Card className="cursor-pointer hover:shadow-lg transition-shadow">
@@ -88,7 +87,7 @@ export default function Home() {
               </Card>
             </Link>
           )}
-          
+
           <Link href="/results">
             <Card className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
@@ -104,7 +103,7 @@ export default function Home() {
               </CardContent>
             </Card>
           </Link>
-          
+
           <Card className="cursor-pointer hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center">
@@ -131,7 +130,7 @@ export default function Home() {
               </Button>
             )}
           </div>
-          
+
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
@@ -147,7 +146,7 @@ export default function Home() {
           ) : events?.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <CalendarDays className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">No events yet</h3>
                 <p className="text-gray-600 mb-4">
                   {isAdmin ? "Create your first pageant event to get started." : "No events available at the moment."}
@@ -175,11 +174,11 @@ export default function Home() {
                   <CardContent>
                     <p className="text-gray-600 mb-4">{event.description}</p>
                     <div className="flex items-center text-sm text-gray-500 mb-2">
-                      <Calendar className="h-4 w-4 mr-2" />
+                      <CalendarDays className="h-4 w-4 mr-2" />
                       {new Date(event.startDate).toLocaleDateString()}
                     </div>
                     <div className="flex items-center text-sm text-gray-500 mb-4">
-                      <Crown className="h-4 w-4 mr-2" />
+                      <Clock className="h-4 w-4 mr-2" />
                       {event.currentPhase}
                     </div>
                     <div className="flex space-x-2">
