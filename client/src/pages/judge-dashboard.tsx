@@ -41,10 +41,13 @@ export default function JudgeDashboard() {
 
   const activePhase = phases?.find(p => p.status === 'active');
 
-  const { data: shows } = useQuery<any[]>({
+  const { data: allShows } = useQuery<any[]>({
     queryKey: ['/api/events', selectedEvent, 'shows'],
     enabled: !!selectedEvent,
   });
+
+  // Filter shows to only include those from the active phase
+  const shows = allShows?.filter(show => show.phaseId === activePhase?.id) || [];
 
   // Get eligible contestants for current phase instead of all contestants  
   const { data: contestants } = useQuery<(Contestant & { user: User })[]>({
@@ -80,6 +83,15 @@ export default function JudgeDashboard() {
     queryKey: ['/api/events', selectedEvent, 'scores', 'current-judge'],
     enabled: !!selectedEvent && !!user,
   });
+
+  // Reset navigation indices when phase changes
+  useEffect(() => {
+    if (activePhase) {
+      setCurrentShowIndex(0);
+      setCurrentCriteriaIndex(0);
+      setCurrentContestantIndex(0);
+    }
+  }, [activePhase?.id]);
 
   // Populate scores from existing database scores (current judge only)
   useEffect(() => {
