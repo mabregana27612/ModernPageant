@@ -14,17 +14,27 @@ interface PhaseProgressionProps {
   eventId: string;
 }
 
-export default function PhaseProgression({ eventId }: PhaseProgressionProps) {
+export default function PhaseProgression({ eventId }: { eventId: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedContestants, setSelectedContestants] = useState<string[]>([]);
 
-  const { data: event } = useQuery<Event>({
-    queryKey: ['/api/events', eventId],
+  const { data: phases, isLoading: phasesLoading, error: phasesError } = useQuery<Phase[]>({
+    queryKey: ['/api/events', eventId, 'phases'],
+    enabled: !!eventId,
+    retry: 2,
+    staleTime: 30000,
   });
 
-  const { data: phases } = useQuery<Phase[]>({
-    queryKey: ['/api/events', eventId, 'phases'],
+  const { data: contestants, isLoading: contestantsLoading, error: contestantsError } = useQuery<(Contestant & { user: User })[]>({
+    queryKey: ['/api/events', eventId, 'contestants'],
+    enabled: !!eventId,
+    retry: 2,
+    staleTime: 30000,
+  });
+
+  const { data: event } = useQuery<Event>({
+    queryKey: ['/api/events', eventId],
   });
 
   const currentPhase = phases?.find(p => p.status === 'active');
@@ -59,7 +69,7 @@ export default function PhaseProgression({ eventId }: PhaseProgressionProps) {
       const response = await apiRequest('POST', `/api/events/${eventId}/advance-contestants`, {
         selectedContestantIds: selectedContestants
       });
-      
+
 
       return response;
     },
@@ -97,8 +107,66 @@ export default function PhaseProgression({ eventId }: PhaseProgressionProps) {
     }
   };
 
+  if (phasesError || contestantsError) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Error loading data: {(phasesError as any)?.message || (contestantsError as any)?.message || 'Unknown error'}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (phasesLoading || contestantsLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center space-x-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="text-sm text-gray-600">Loading phase progression data...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!event || !phases) {
     return <div>Loading...</div>;
+  }
+
+  if (!phases || phases.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              No phases found for this event. Please create phases first.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!contestants || contestants.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              No contestants found for this event. Please add contestants first.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (!currentPhase) {

@@ -10,13 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Edit, Trash2, Play, Pause, RotateCcw, Users, Trophy, Calendar, Settings, ArrowRight } from "lucide-react";
+import { Plus, Edit, Trash2, Play, Pause, RotateCcw, Users, Trophy, Calendar, Settings, ArrowRight, AlertTriangle } from "lucide-react";
 import PhaseProgression from "@/components/phase-progression";
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import type { Event, Show, Criteria, Phase, Contestant, Judge } from "@shared/schema";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 function JudgeScoresView({ currentEventId }: { currentEventId: string | undefined }) {
   const [selectedPhase, setSelectedPhase] = useState<string>("");
@@ -358,8 +359,10 @@ export default function AdminPanel() {
     }
   }, [user, toast]);
 
-  const { data: events } = useQuery<Event[]>({
+  const { data: events, isLoading, error } = useQuery<Event[]>({
     queryKey: ['/api/events'],
+    retry: 2,
+    staleTime: 30000,
   });
 
   // Get the active event or first event
@@ -1056,6 +1059,32 @@ export default function AdminPanel() {
     }
   };
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-2xl mx-auto">
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Error loading events: {(error as any)?.message || 'Unknown error'}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-gray-600">Loading admin panel...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!currentEvent) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -1131,7 +1160,7 @@ export default function AdminPanel() {
                 )}
               </div>
               {currentEvent && (
-                
+
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-600">Change Status:</span>
                   <Select value={currentEvent.status} onValueChange={(status) => updateEventStatusMutation.mutate({ id: currentEvent.id, status })}>
@@ -1489,7 +1518,7 @@ export default function AdminPanel() {
           <TabsContent value="phases">
             <Card>
               <CardHeader>
-                
+
                 <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <CardTitle>Phase Management</CardTitle>
@@ -1984,7 +2013,7 @@ export default function AdminPanel() {
                           weight: criteriaForm.weight, // Keep as string
                           maxScore: parseInt(criteriaForm.maxScore) || 10
                         };
-                        
+
                         if (editingCriteria) {
                           updateCriteriaMutation.mutate({ id: editingCriteria.id, data });
                         } else {
