@@ -419,46 +419,129 @@ export default function JudgeDashboard() {
           </Card>
         )}
 
-        {/* Current Show and Criteria */}
-        {currentShow && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Current Show: {currentShow.name}</span>
-                <div className="flex space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handlePrevShow}
-                    disabled={currentShowIndex === 0}
-                  >
-                    Prev Show
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleNextShow}
-                    disabled={currentShowIndex >= (shows?.length || 1) - 1}
-                  >
-                    Next Show
-                  </Button>
-                </div>
+        {/* Phase, Show and Criteria Navigation with Enhanced Colors */}
+        <div className="grid md:grid-cols-3 gap-4 mb-6">
+          {/* Current Phase */}
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-purple-800 text-lg flex items-center">
+                🏆 Current Phase
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-xl font-bold text-purple-900">{currentPhase?.name || 'No Active Phase'}</div>
+                <div className="text-sm text-purple-600 mt-1">{currentPhase?.description}</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Current Show */}
+          {currentShow && (
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-blue-800 text-lg flex items-center justify-between">
+                  🎭 Current Show
+                  <div className="flex space-x-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handlePrevShow}
+                      disabled={currentShowIndex === 0}
+                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-200"
+                    >
+                      ←
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleNextShow}
+                      disabled={currentShowIndex >= (shows?.length || 1) - 1}
+                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-200"
+                    >
+                      →
+                    </Button>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-blue-900">{currentShow.name}</div>
+                  <div className="text-sm text-blue-600 mt-1">Weight: {currentShow.weight}%</div>
+                  <div className="text-xs text-blue-500 mt-1">Show {currentShowIndex + 1} of {shows?.length || 0}</div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Current Criteria */}
+          {currentCriteria && (
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-green-800 text-lg flex items-center justify-between">
+                  📊 Current Criteria
+                  <div className="flex space-x-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handlePrevCriteria}
+                      disabled={currentCriteriaIndex === 0}
+                      className="text-green-600 hover:text-green-800 hover:bg-green-200"
+                    >
+                      ←
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleNextCriteria}
+                      disabled={currentCriteriaIndex >= (criteria?.length || 1) - 1}
+                      className="text-green-600 hover:text-green-800 hover:bg-green-200"
+                    >
+                      →
+                    </Button>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-green-900">{currentCriteria.name}</div>
+                  <div className="text-sm text-green-600 mt-1">Weight: {currentCriteria.weight}%</div>
+                  <div className="text-xs text-green-500 mt-1">Max Score: {currentCriteria.maxScore}</div>
+                  <div className="text-xs text-green-500">Criteria {currentCriteriaIndex + 1} of {criteria?.length || 0}</div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* All Criteria Overview */}
+        {currentShow && (
+          <Card className="mb-6 bg-gradient-to-r from-gray-50 to-gray-100">
+            <CardHeader>
+              <CardTitle className="text-gray-800">All Criteria for {currentShow.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {criteria?.map((criterion, index) => (
                   <div 
                     key={criterion.id} 
-                    className={`p-4 rounded-lg border transition-colors ${
+                    className={`p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
                       index === currentCriteriaIndex 
-                        ? 'bg-primary/20 border-primary' 
-                        : 'bg-primary/5 border-primary/10'
+                        ? 'bg-gradient-to-br from-green-100 to-green-200 border-green-400 shadow-md transform scale-105' 
+                        : 'bg-white border-gray-200 hover:border-green-300 hover:bg-green-50'
                     }`}
+                    onClick={() => setCurrentCriteriaIndex(index)}
                   >
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">{criterion.weight}%</div>
-                      <div className="text-sm text-gray-600">{criterion.name}</div>
+                      <div className={`text-xl font-bold ${index === currentCriteriaIndex ? 'text-green-800' : 'text-gray-700'}`}>
+                        {criterion.weight}%
+                      </div>
+                      <div className={`text-sm ${index === currentCriteriaIndex ? 'text-green-700' : 'text-gray-600'}`}>
+                        {criterion.name}
+                      </div>
+                      <div className={`text-xs mt-1 ${index === currentCriteriaIndex ? 'text-green-600' : 'text-gray-500'}`}>
+                        Max: {criterion.maxScore}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -509,7 +592,7 @@ export default function JudgeDashboard() {
             {/* Current Contestant & Criteria */}
             <div className="grid md:grid-cols-2 gap-6">
               {/* Contestant Card */}
-              <Card>
+              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
                 <div className="relative">
                   <img 
                     src={contestants[currentContestantIndex].photoUrl || contestants[currentContestantIndex].user.profileImageUrl || 'https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300'} 
@@ -517,12 +600,20 @@ export default function JudgeDashboard() {
                     className="w-full h-64 object-cover rounded-t-lg"
                     key={contestants[currentContestantIndex].id}
                   />
-                  <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
+                  <div className="absolute top-4 left-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
                     #{contestants[currentContestantIndex].contestantNumber}
                   </div>
+                  <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-xs">
+                    {currentContestantIndex + 1} of {contestants?.length || 0}
+                  </div>
                 </div>
+                <CardHeader className="bg-gradient-to-r from-orange-100 to-orange-50">
+                  <CardTitle className="text-orange-900 text-xl text-center">
+                    👤 Current Contestant
+                  </CardTitle>
+                </CardHeader>
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 className="text-xl font-semibold text-orange-900 mb-2 text-center">
                     {contestants[currentContestantIndex].user.firstName} {contestants[currentContestantIndex].user.lastName}
                   </h3>
                   <p className="text-gray-600 mb-4">
@@ -536,13 +627,26 @@ export default function JudgeDashboard() {
 
               {/* Scoring Card */}
               {currentCriteria && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>{currentCriteria.name}</span>
-                      <Badge>{currentCriteria.weight}%</Badge>
+                <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
+                  <CardHeader className="bg-gradient-to-r from-indigo-100 to-indigo-50">
+                    <CardTitle className="text-indigo-900 text-xl text-center">
+                      🎯 Score: {currentCriteria.name}
                     </CardTitle>
-                    <p className="text-gray-600">{currentCriteria.description}</p>
+                    <div className="text-center">
+                      <div className="flex justify-center items-center gap-4 mt-2">
+                        <Badge className="bg-indigo-200 text-indigo-800">
+                          Weight: {currentCriteria.weight}%
+                        </Badge>
+                        <Badge className="bg-indigo-200 text-indigo-800">
+                          Max: {currentCriteria.maxScore}
+                        </Badge>
+                      </div>
+                      {currentCriteria.description && (
+                        <p className="text-indigo-600 text-sm mt-2">
+                          {currentCriteria.description}
+                        </p>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Score Input */}

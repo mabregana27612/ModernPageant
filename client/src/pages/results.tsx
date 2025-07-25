@@ -28,7 +28,7 @@ export default function Results() {
 
   const handlePrintSpecificPhase = (phaseId: string, phaseName: string) => {
     const printWindow = window.open('', '_blank');
-    const phaseData = organizedResults.find(pr => pr.phase.id === phaseId);
+    const phaseData = phaseResults.data?.find(pr => pr.phase.id === phaseId);
     
     if (printWindow && phaseData && currentEvent) {
       printWindow.document.write(`
@@ -45,6 +45,10 @@ export default function Results() {
             .rank-1 { background-color: #ffd700; }
             .rank-2 { background-color: #c0c0c0; }
             .rank-3 { background-color: #cd7f32; }
+            .signatures { margin-top: 50px; }
+            .signature-section { display: flex; justify-content: space-between; margin-top: 30px; }
+            .signature-box { text-align: center; width: 200px; }
+            .signature-line { border-bottom: 1px solid #000; margin-bottom: 10px; height: 40px; }
             @media print { 
               body { margin: 0; }
               .no-print { display: none; }
@@ -77,6 +81,24 @@ export default function Results() {
               `).join('')}
             </tbody>
           </table>
+          
+          <div class="signatures">
+            <h3>Signatures</h3>
+            <div class="signature-section">
+              <div class="signature-box">
+                <div class="signature-line"></div>
+                <p><strong>Event Administrator</strong></p>
+                <p>Date: ___________</p>
+              </div>
+              ${judges?.map(judge => `
+                <div class="signature-box">
+                  <div class="signature-line"></div>
+                  <p><strong>Judge: ${judge.user?.firstName} ${judge.user?.lastName}</strong></p>
+                  <p>Date: ___________</p>
+                </div>
+              `).join('') || ''}
+            </div>
+          </div>
         </body>
         </html>
       `);
@@ -99,27 +121,45 @@ export default function Results() {
     enabled: !!(selectedEvent || events?.find(e => e.status === 'active')),
   });
 
+  const { data: judges } = useQuery<any[]>({
+    queryKey: ['/api/events', selectedEvent || events?.find(e => e.status === 'active')?.id, 'judges'],
+    enabled: !!(selectedEvent || events?.find(e => e.status === 'active')),
+  });
+
   const activeEvent = events?.find(e => e.status === 'active') || events?.[0];
   const currentEvent = selectedEvent ? events?.find(e => e.id === selectedEvent) : activeEvent;
 
   // Get results for each phase
   const phaseResults = useQuery({
     queryKey: ['/api/events', currentEvent?.id, 'all-phase-results'],
-    enabled: !!currentEvent && !!phases,
+    enabled: !!currentEvent && !!phases && phases.length > 0,
     queryFn: async () => {
-      if (!currentEvent || !phases) return [];
+      if (!currentEvent || !phases || phases.length === 0) return [];
+      
+      console.log('Fetching results for phases:', phases.map(p => ({ id: p.id, name: p.name })));
       
       const allResults = await Promise.all(
         phases.map(async (phase) => {
-          const response = await fetch(`/api/events/${currentEvent.id}/results?phaseId=${phase.id}`);
-          const results = await response.json();
-          return {
-            phase,
-            results
-          };
+          try {
+            const response = await fetch(`/api/events/${currentEvent.id}/results?phaseId=${phase.id}`);
+            if (!response.ok) {
+              console.error(`Failed to fetch results for phase ${phase.name}:`, response.status);
+              return { phase, results: [] };
+            }
+            const results = await response.json();
+            console.log(`Results for ${phase.name}:`, results.length, 'contestants');
+            return {
+              phase,
+              results
+            };
+          } catch (error) {
+            console.error(`Error fetching results for phase ${phase.name}:`, error);
+            return { phase, results: [] };
+          }
         })
       );
       
+      console.log('All phase results:', allResults.map(pr => ({ phase: pr.phase.name, resultCount: pr.results.length })));
       return allResults;
     }
   });
@@ -227,6 +267,21 @@ export default function Results() {
           </TabsList>
 
           <TabsContent value="results" className="space-y-8">
+            {/* Debug Info */}
+            {phaseResults.isLoading && (
+              <Card className="p-4">
+                <div className="text-center">Loading results...</div>
+              </Card>
+            )}
+            
+            {phaseResults.error && (
+              <Card className="p-4 border-red-200 bg-red-50">
+                <div className="text-center text-red-700">
+                  Error loading results: {(phaseResults.error as Error).message}
+                </div>
+              </Card>
+            )}
+            
             {/* Results by Phase and Show */}
             {organizedResults.length > 0 ? (
               <div className="space-y-8">
