@@ -62,6 +62,15 @@ export default function JudgeDashboard() {
 
   const currentShow = currentPhaseShows[currentShowIndex];
 
+  console.log("Show Selection Debug:", {
+    currentPhaseId: currentPhase?.id,
+    allShows: shows?.map(s => ({ id: s.id, name: s.name, phaseId: s.phaseId })),
+    currentPhaseShows: currentPhaseShows?.map(s => ({ id: s.id, name: s.name, phaseId: s.phaseId })),
+    currentShowIndex,
+    currentShowId: currentShow?.id,
+    currentShowName: currentShow?.name
+  });
+
   console.log("Debug Info:", {
     selectedEvent,
     phases: phases?.length,
@@ -80,12 +89,32 @@ export default function JudgeDashboard() {
     enabled: !!currentPhase?.id,
   });
 
-  const { data: criteria } = useQuery<any[]>({
+  const { data: criteria, error: criteriaError, isLoading: criteriaLoading } = useQuery<any[]>({
     queryKey: ['/api/shows', currentShow?.id, 'criteria'],
+    enabled: !!currentShow?.id,
+    retry: 1,
+  });
+
+  // Debug query to check if criteria endpoint is working
+  const { data: allCriteriaDebug } = useQuery<any[]>({
+    queryKey: ['/api/criteria/templates'],
     enabled: !!currentShow?.id,
   });
 
   const currentCriteria = criteria?.[currentCriteriaIndex];
+
+  console.log("Criteria Debug:", {
+    currentShow: currentShow?.id,
+    currentShowName: currentShow?.name,
+    criteriaCount: criteria?.length,
+    criteria: criteria,
+    criteriaError: criteriaError?.message,
+    criteriaLoading,
+    currentCriteriaIndex,
+    currentCriteria: currentCriteria?.name,
+    allCriteriaTemplates: allCriteriaDebug?.length,
+    queryEnabled: !!currentShow?.id
+  });
 
   const { data: scoringProgress } = useQuery<{
     totalRequired: number;
