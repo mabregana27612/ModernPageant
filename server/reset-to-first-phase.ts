@@ -1,63 +1,84 @@
-import { db } from './db';
-import { phases, events } from '../shared/schema';
-import { eq, and, like } from 'drizzle-orm';
+
+import { db } from "./db";
+import { events, phases, contestants, contestantPhases, scores } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 
 async function resetToFirstPhase() {
   console.log("🔄 Resetting phases to start from first phase...");
-
+  
   try {
-    // Find the test event by name pattern
-    const testEvents = await db.select().from(events).where(
-      like(events.name, '%Test Pageant%')
-    );
-
-    console.log("Found test events:", testEvents.map(e => ({ id: e.id, name: e.name })));
-
-    if (testEvents.length === 0) {
-      console.log("❌ No test events found");
-      return;
+    // Get all events
+    const allEvents = await db.select().from(events);
+    
+    for (const event of allEvents) {
+      console.log(`\n📅 Processing event: ${event.name}`);
+      
+      // Get phases for this event, ordered by phase order
+      const eventPhases = await db
+        .select()
+        .from(phases)
+        .where(eq(phases.eventId, event.id))
+        .orderBy(phases.order);
+      
+      if (eventPhases.length === 0) {
+        console.log("  ❌ No phases found for this event");
+        continue;
+      }
+      
+      console.log(`Found phases: ${eventPhases.map(p => p.name)}`);
+      
+      const firstPhase = eventPhases[0];
+      
+      // Reset all phases - first phase should be active, others pending
+      for (const phase of eventPhases) {
+        const newStatus = phase.id === firstPhase.id ? 'active' : 'pending';
+        await db
+          .update(phases)
+          .set({ status: newStatus })
+          .where(eq(phases.id, phase.id));
+      }
+      
+      // Clear all contestant phase assignments
+      await db
+        .delete(contestantPhases)
+        .where(eq(contestantPhases.phaseId, eventPhases.map(p => p.id)[0]));
+      
+      // Get all contestants for this event
+      const eventContestants = await db
+        .select()
+        .from(contestants)
+        .where(eq(contestants.eventId, event.id));
+      
+      // Add all contestants to first phase
+      if (eventContestants.length > 0) {
+        const participations = eventContestants.map(contestant => ({
+          contestantId: contestant.id,
+          phaseId: firstPhase.id,
+          status: 'active' as const,
+        }));
+        
+        await db.insert(contestantPhases).values(participations);
+        console.log(`  ✅ Added ${participations.length} contestants to first phase: ${firstPhase.name}`);
+      }
+      
+      console.log(`Updated phases: ${eventPhases.map(p => `${p.name} (${p.id === firstPhase.id ? 'active' : 'pending'})`)}`);
     }
-
-    const testEvent = testEvents[0]; // Use the first test event found
-    console.log(`Using event: ${testEvent.name} (${testEvent.id})`);
-
-    // Find the test event phases
-    const allPhases = await db.select().from(phases).where(
-      eq(phases.eventId, testEvent.id)
-    ).orderBy(phases.order);
-
-    console.log("Found phases:", allPhases.map(p => ({ name: p.name, status: p.status, order: p.order })));
-
-    if (allPhases.length === 0) {
-      console.log("❌ No phases found for this event");
-      return;
-    }
-
-    // Set all phases to pending first
-    await db.update(phases)
-      .set({ status: 'pending' })
-      .where(eq(phases.eventId, testEvent.id));
-
-    // Set the first phase (order 1) to active
-    const firstPhase = allPhases.find(p => p.order === 1);
-    if (firstPhase) {
-      await db.update(phases)
-        .set({ status: 'active' })
-        .where(eq(phases.id, firstPhase.id));
-
-      console.log(`✅ Set ${firstPhase.name} as active phase`);
-    }
-
-    // Verify the update
-    const updatedPhases = await db.select().from(phases).where(
-      eq(phases.eventId, testEvent.id)
-    ).orderBy(phases.order);
-
-    console.log("Updated phases:", updatedPhases.map(p => ({ name: p.name, status: p.status, order: p.order })));
-    console.log("🎯 Phase reset completed! You can now test progression from Preliminaries → Semi-Finals");
-    console.log("🔄 Refresh your browser to see the changes");
-
+    
+    console.log("\n🎯 Phase reset completed! You can now test progression from Preliminaries → Semi-Finals");
+    
   } catch (error) {
     console.error("❌ Error resetting phases:", error);
+    throw error;
   }
 }
+
+// Run the reset
+resetToFirstPhase()
+  .then(() => {
+    console.log("🎉 Reset completed!");
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("💥 Reset failed:", error);
+    process.exit(1);
+  });

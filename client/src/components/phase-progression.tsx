@@ -52,9 +52,16 @@ export default function PhaseProgression({ eventId }: PhaseProgressionProps) {
 
   const advanceContestantsMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('POST', `/api/events/${eventId}/advance-contestants`, {
+      if (selectedContestants.length === 0) {
+        throw new Error('Please select contestants to advance');
+      }
+
+      const response = await apiRequest('POST', `/api/events/${eventId}/advance-contestants`, {
         selectedContestantIds: selectedContestants
       });
+      
+
+      return response;
     },
     onSuccess: (data: any) => {
       toast({
@@ -63,6 +70,7 @@ export default function PhaseProgression({ eventId }: PhaseProgressionProps) {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events', eventId] });
       queryClient.invalidateQueries({ queryKey: ['/api/phases'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', eventId, 'results'] });
       setSelectedContestants([]);
     },
     onError: (error: any) => {
@@ -206,7 +214,7 @@ export default function PhaseProgression({ eventId }: PhaseProgressionProps) {
                 results.map((result, index) => {
                   const contestant = allContestants?.find(c => c.id === result.contestantId);
                   const isSelected = selectedContestants.includes(result.contestantId);
-                  
+
                   return (
                     <div
                       key={result.contestantId}
@@ -240,7 +248,7 @@ export default function PhaseProgression({ eventId }: PhaseProgressionProps) {
               ) : eligibleContestants && eligibleContestants.length > 0 ? (
                 eligibleContestants.map((contestant, index) => {
                   const isSelected = selectedContestants.includes(contestant.id);
-                  
+
                   return (
                     <div
                       key={contestant.id}
