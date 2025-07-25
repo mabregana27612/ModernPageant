@@ -282,6 +282,8 @@ export default function AdminPanel() {
   const [selectedShow, setSelectedShow] = useState<string | null>(null);
   const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
   const [showCriteriaForm, setShowCriteriaForm] = useState(false);
+  const [showCriteriaTemplateModal, setShowCriteriaTemplateModal] = useState(false);
+  const [criteriaSearchTerm, setCriteriaSearchTerm] = useState('');
   const [criteriaForm, setCriteriaForm] = useState({
     name: '',
     description: '',
@@ -301,6 +303,16 @@ export default function AdminPanel() {
   const { data: criteriaData } = useQuery({
     queryKey: ['/api/shows', selectedShow, 'criteria'],
     enabled: !!selectedShow,
+  });
+
+  // Get all existing criteria across all shows for templates
+  const { data: allCriteriaTemplates } = useQuery({
+    queryKey: ['/api/criteria/templates'],
+    queryFn: async () => {
+      const response = await fetch('/api/criteria/templates');
+      if (!response.ok) throw new Error('Failed to fetch criteria templates');
+      return response.json();
+    },
   });
 
   // Form states
@@ -1183,16 +1195,29 @@ export default function AdminPanel() {
                                 <div className="p-4 bg-white border-t">
                                   <div className="flex items-center justify-between mb-4">
                                     <h4 className="font-medium">Criteria for {show.name}</h4>
-                                    <Button
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedShow(show.id);
-                                        setShowCriteriaForm(true);
-                                      }}
-                                    >
-                                      <Plus className="h-4 w-4 mr-2" />
-                                      Add Criteria
-                                    </Button>
+                                    <div className="flex items-center space-x-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setSelectedShow(show.id);
+                                          setShowCriteriaTemplateModal(true);
+                                        }}
+                                      >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        From Template
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedShow(show.id);
+                                          setShowCriteriaForm(true);
+                                        }}
+                                      >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Create New
+                                      </Button>
+                                    </div>
                                   </div>
 
                                   <div className="grid gap-3">
@@ -1992,6 +2017,127 @@ export default function AdminPanel() {
                       Cancel
                     </Button>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Criteria Template Selection Modal */}
+        {showCriteriaTemplateModal && selectedShow && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-2xl max-h-[80vh] overflow-hidden">
+              <CardHeader>
+                <CardTitle>Select Criteria Template</CardTitle>
+                <p className="text-sm text-gray-600">
+                  Choose from existing criteria to add to: {shows?.find(s => s.id === selectedShow)?.name}
+                </p>
+              </CardHeader>
+              <CardContent className="overflow-y-auto">
+                <div className="space-y-4">
+                  <div>
+                    <Input
+                      placeholder="Search criteria..."
+                      value={criteriaSearchTerm}
+                      onChange={(e) => setCriteriaSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {(() => {
+                      const filteredTemplates = allCriteriaTemplates
+                        ?.filter((template: any) => 
+                          template.name.toLowerCase().includes(criteriaSearchTerm.toLowerCase()) ||
+                          template.description?.toLowerCase().includes(criteriaSearchTerm.toLowerCase()) ||
+                          template.showName?.toLowerCase().includes(criteriaSearchTerm.toLowerCase()) ||
+                          template.eventName?.toLowerCase().includes(criteriaSearchTerm.toLowerCase())
+                        ) || [];
+                      
+                      // Group by event and show
+                      const grouped = filteredTemplates.reduce((acc: any, template: any) => {
+                        const key = `${template.eventName} - ${template.showName}`;
+                        if (!acc[key]) acc[key] = [];
+                        acc[key].push(template);
+                        return acc;
+                      }, {});
+                      
+                      return Object.entries(grouped).map(([groupKey, templates]: [string, any]) => (
+                        <div key={groupKey} className="space-y-2">
+                          <h5 className="text-sm font-medium text-gray-700 px-2 py-1 bg-gray-100 rounded">
+                            {groupKey}
+                          </h5>
+                          {templates.map((template: any) => (
+                            <div 
+                              key={template.id} 
+                              className="p-3 ml-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                              onClick={() => {
+                                setCriteriaForm({
+                                  name: template.name,
+                                  description: template.description || '',
+                                  weight: template.weight.toString(),
+                                  maxScore: template.maxScore.toString()
+                                });
+                                setShowCriteriaTemplateModal(false);
+                                setShowCriteriaForm(true);
+                              }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-medium">{template.name}</h4>
+                                  {template.description && (
+                                    <p className="text-sm text-gray-600 mt-1">{template.description}</p>
+                                  )}
+                                  <div className="flex items-center space-x-2 mt-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {parseFloat(template.weight).toFixed(1)}% weight
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-xs">
+                                      Max: {template.maxScore}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <Button size="sm" variant="ghost" className="ml-4">
+                                  Use Template
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                  
+                  {(!allCriteriaTemplates || allCriteriaTemplates.length === 0) && (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No existing criteria found to use as templates.</p>
+                    </div>
+                  )}
+                  
+                  {allCriteriaTemplates && allCriteriaTemplates.length > 0 && 
+                   allCriteriaTemplates.filter((template: any) => 
+                     template.name.toLowerCase().includes(criteriaSearchTerm.toLowerCase()) ||
+                     template.description?.toLowerCase().includes(criteriaSearchTerm.toLowerCase()) ||
+                     template.showName?.toLowerCase().includes(criteriaSearchTerm.toLowerCase())
+                   ).length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No criteria match your search.</p>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex space-x-2 mt-6 pt-4 border-t">
+                  <Button variant="outline" onClick={() => {
+                    setShowCriteriaTemplateModal(false);
+                    setCriteriaSearchTerm('');
+                  }}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => {
+                    setShowCriteriaTemplateModal(false);
+                    setShowCriteriaForm(true);
+                  }}>
+                    Create New Instead
+                  </Button>
                 </div>
               </CardContent>
             </Card>

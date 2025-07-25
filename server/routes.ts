@@ -277,6 +277,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all criteria as templates for reuse
+  app.get('/api/criteria/templates', async (req, res) => {
+    try {
+      const templates = await storage.getAllCriteriaTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching criteria templates:", error);
+      res.status(500).json({ message: "Failed to fetch criteria templates" });
+    }
+  });
+
   // Phase routes
   app.get('/api/events/:eventId/phases', async (req, res) => {
     try {

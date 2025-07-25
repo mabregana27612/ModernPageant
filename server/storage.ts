@@ -28,7 +28,7 @@ import {
   type InsertScore,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { and, desc, sql, eq } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -87,6 +87,8 @@ export interface IStorage {
 
   // Results operations
   getResults(eventId: string, phaseId: string): Promise<any[]>;
+
+    getAllCriteriaTemplates(): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -243,9 +245,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllCriteria(): Promise<Criteria[]> {
-    return await db
-      .select()
-      .from(criteria);
+    return await db.select().from(criteria);
+  }
+
+  async getAllCriteriaTemplates(): Promise<any[]> {
+    return db
+      .select({
+        id: criteria.id,
+        name: criteria.name,
+        description: criteria.description,
+        weight: criteria.weight,
+        maxScore: criteria.maxScore,
+        showId: criteria.showId,
+        showName: shows.name,
+        eventName: events.name,
+        eventId: shows.eventId,
+      })
+      .from(criteria)
+      .leftJoin(shows, eq(criteria.showId, shows.id))
+      .leftJoin(events, eq(shows.eventId, events.id))
+      .orderBy(events.name, shows.name, criteria.name);
   }
 
   async createCriteria(criteriaData: InsertCriteria): Promise<Criteria> {
