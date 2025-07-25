@@ -12,7 +12,7 @@ export default function Navigation() {
     { href: "/", label: "Home", active: location === "/" },
     { href: "/contestants", label: "Contestants", active: location === "/contestants" },
     { href: "/contests", label: "Contests", active: location === "/contests" },
-    { href: "/judge", label: "Dashboard", active: location === "/judge" },
+    { href: "/judge", label: "Dashboard", active: location === "/judge-dashboard" },
     { href: "/results", label: "Results", active: location === "/results" },
   ];
 
