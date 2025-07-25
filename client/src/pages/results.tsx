@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Medal, Crown, BarChart3, PieChart, Users, Calculator, Eye } from "lucide-react";
+import { Trophy, Medal, Crown, BarChart3, PieChart, Users, Calculator, Eye, Printer } from "lucide-react";
 import { useState } from "react";
 import type { Event } from "@shared/schema";
 import ResultsTable from "@/components/results-table";
@@ -13,8 +13,77 @@ import { useAuth } from "@/hooks/useAuth";
 
 export default function Results() {
   const [selectedEvent, setSelectedEvent] = useState<string>("");
+  const [isPrintMode, setIsPrintMode] = useState(false);
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = (user as any)?.role === 'admin';
+
+  // Print functions
+  const handlePrintResults = () => {
+    setIsPrintMode(true);
+    setTimeout(() => {
+      window.print();
+      setIsPrintMode(false);
+    }, 100);
+  };
+
+  const handlePrintSpecificPhase = (phaseId: string, phaseName: string) => {
+    const printWindow = window.open('', '_blank');
+    const phaseData = organizedResults.find(pr => pr.phase.id === phaseId);
+    
+    if (printWindow && phaseData && currentEvent) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${currentEvent.name} - ${phaseName} Results</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px; }
+            .results-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            .results-table th, .results-table td { border: 1px solid #000; padding: 8px; text-align: left; }
+            .results-table th { background-color: #f0f0f0; }
+            .rank-1 { background-color: #ffd700; }
+            .rank-2 { background-color: #c0c0c0; }
+            .rank-3 { background-color: #cd7f32; }
+            @media print { 
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${currentEvent?.name}</h1>
+            <h2>${phaseName} Results</h2>
+            <p>Generated on: ${new Date().toLocaleDateString()}</p>
+          </div>
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Contestant</th>
+                <th>Total Score</th>
+                <th>Average Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${phaseData.results.slice(0, 10).map((result: any, index: number) => `
+                <tr class="${index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : ''}">
+                  <td>${index + 1}</td>
+                  <td>${result.user?.firstName} ${result.user?.lastName}</td>
+                  <td>${parseFloat(result.totalScore).toFixed(1)}</td>
+                  <td>${parseFloat(result.averageScore).toFixed(1)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
 
   const { data: events } = useQuery<Event[]>({
     queryKey: ['/api/events'],
@@ -72,7 +141,7 @@ export default function Results() {
   const organizedResults = phaseResults.data || [];
   const overallWinner = organizedResults
     .flatMap(pr => pr.results)
-    .sort((a, b) => parseFloat(b.totalScore) - parseFloat(a.totalScore))[0];
+    .sort((a: any, b: any) => parseFloat(b.totalScore) - parseFloat(a.totalScore))[0];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -80,8 +149,22 @@ export default function Results() {
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
-            <h1 className="text-3xl font-playfair font-bold text-gray-900 mb-2">Competition Results</h1>
-            <p className="text-gray-600">{currentEvent.name} - Rankings by Show & Phase</p>
+            <div className="flex justify-between items-center">
+              <div className="flex-1">
+                <h1 className="text-3xl font-playfair font-bold text-gray-900 mb-2">Competition Results</h1>
+                <p className="text-gray-600">{currentEvent.name} - Rankings by Show & Phase</p>
+              </div>
+              <div className="no-print flex gap-2">
+                <Button
+                  onClick={handlePrintResults}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print All Results
+                </Button>
+              </div>
+            </div>
             
             {/* Event Selector */}
             {events && events.length > 1 && (
@@ -167,7 +250,7 @@ export default function Results() {
                       showTotal: showTotal,
                       showScores: showScores
                     };
-                  }).sort((a, b) => b.showTotal - a.showTotal);
+                  }).sort((a: any, b: any) => b.showTotal - a.showTotal);
                   
                   acc[show.id] = {
                     show,
@@ -190,7 +273,7 @@ export default function Results() {
                       }`}>
                         <Users className="h-6 w-6" />
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <h2 className="text-2xl font-bold text-gray-900">{phase.name}</h2>
                         <div className="text-gray-600 flex items-center gap-2">
                           <span>Phase {phase.order}</span>
@@ -202,6 +285,17 @@ export default function Results() {
                             {phase.status}
                           </Badge>
                         </div>
+                      </div>
+                      <div className="no-print">
+                        <Button
+                          onClick={() => handlePrintSpecificPhase(phase.id, phase.name)}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-2"
+                        >
+                          <Printer className="h-4 w-4" />
+                          Print {phase.name}
+                        </Button>
                       </div>
                     </div>
                   </div>

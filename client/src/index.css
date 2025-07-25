@@ -139,3 +139,92 @@
 .pageant-input {
   @apply border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary transition-colors;
 }
+
+/*
+ * ========================================
+ * Print Styles
+ * ========================================
+ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .min-h-screen {
+    min-height: auto !important;
+  }
+  
+  .bg-gray-50,
+  .bg-gradient-to-r {
+    background: white !important;
+  }
+  
+  .shadow-sm,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+  
+  .rounded-lg,
+  .rounded-xl {
+    border-radius: 0 !important;
+  }
+  
+  .border {
+    border: 1px solid #000 !important;
+  }
+  
+  .text-gray-600,
+  .text-gray-900 {
+    color: black !important;
+  }
+  
+  /* Print-specific table styles */
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+  }
+  
+  .print-table th,
+  .print-table td {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: left;
+  }
+  
+  .print-table th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+  }
+  
+  /* Ranking highlights for print */
+  .print-rank-1 {
+    background-color: #ffd700 !important;
+  }
+  
+  .print-rank-2 {
+    background-color: #c0c0c0 !important;
+  }
+  
+  .print-rank-3 {
+    background-color: #cd7f32 !important;
+  }
+  
+  /* Page breaks */
+  .print-page-break {
+    page-break-before: always;
+  }
+  
+  /* Header styles for print */
+  .print-header {
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 20px;
+  }
+}
