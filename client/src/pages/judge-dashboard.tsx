@@ -47,12 +47,26 @@ export default function JudgeDashboard() {
   });
 
   // Filter shows to only include those from the active phase
-  const shows = allShows?.filter(show => show.phaseId === activePhase?.id) || [];
+  // If no active phase, use the first phase as fallback
+  const fallbackPhase = phases?.[0];
+  const currentPhase = activePhase || fallbackPhase;
+  const shows = allShows?.filter(show => show.phaseId === currentPhase?.id) || [];
+
+  // Debug logging
+  console.log('Debug Info:', {
+    selectedEvent,
+    phases: phases?.length,
+    activePhase: activePhase?.name,
+    fallbackPhase: fallbackPhase?.name,
+    currentPhase: currentPhase?.name,
+    allShows: allShows?.length,
+    filteredShows: shows?.length
+  });
 
   // Get eligible contestants for current phase instead of all contestants  
   const { data: contestants } = useQuery<(Contestant & { user: User })[]>({
-    queryKey: ['/api/phases', activePhase?.id, 'contestants'],
-    enabled: !!activePhase?.id,
+    queryKey: ['/api/phases', currentPhase?.id, 'contestants'],
+    enabled: !!currentPhase?.id,
   });
 
   const currentShow = shows?.[currentShowIndex];
@@ -245,6 +259,46 @@ export default function JudgeDashboard() {
             <p className="text-gray-600">There are no active events to judge at the moment.</p>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // Show debugging information if no criteria are found
+  if (currentEvent && (!shows || shows.length === 0 || !criteria || criteria.length === 0)) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <h1 className="text-3xl font-playfair font-bold text-gray-900 mb-2">Judge Dashboard</h1>
+            <p className="text-gray-600">{currentEvent.name}</p>
+          </div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Card className="border-yellow-200 bg-yellow-50">
+            <CardHeader>
+              <CardTitle className="text-yellow-800">Setup Required</CardTitle>
+            </CardHeader>
+            <CardContent className="text-yellow-700">
+              <p className="mb-4">The scoring system needs to be set up before judging can begin:</p>
+              <div className="space-y-2 text-sm">
+                <div>📋 Phases: {phases?.length || 0} found {!currentPhase && "(No active phase)"}</div>
+                <div>🎭 Shows: {allShows?.length || 0} total, {shows?.length || 0} in current phase</div>
+                <div>📊 Criteria: {criteria?.length || 0} found for current show</div>
+                <div>👥 Contestants: {contestants?.length || 0} found</div>
+              </div>
+              <div className="mt-4 p-3 bg-yellow-100 rounded">
+                <p className="font-medium mb-2">To fix this:</p>
+                <ol className="list-decimal list-inside space-y-1 text-sm">
+                  <li>Go to the Admin Panel</li>
+                  <li>Ensure you have at least one Phase created and marked as "active"</li>
+                  <li>Create Shows within that Phase</li>
+                  <li>Add Criteria to those Shows</li>
+                </ol>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }

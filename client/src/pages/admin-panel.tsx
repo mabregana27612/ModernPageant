@@ -900,8 +900,7 @@ export default function AdminPanel() {
 
     try {
       await apiRequest('POST', `/api/events/${currentEventId}/criteria`, data);
-      toast({
-        title: "Show added",
+      toast({        title: "Show added",
         description: "New show category has been added successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events', currentEventId, 'shows'] });
@@ -1096,6 +1095,7 @@ export default function AdminPanel() {
                 )}
               </div>
               {currentEvent && (
+                
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-600">Change Status:</span>
                   <Select value={currentEvent.status} onValueChange={(status) => updateEventStatusMutation.mutate({ id: currentEvent.id, status })}>
@@ -1157,7 +1157,7 @@ export default function AdminPanel() {
                             Add Show to {phase.name}
                           </Button>
                         </div>
-                        
+
                         <div className="space-y-3">
                           <h4 className="text-sm font-medium text-gray-700">Shows in this phase:</h4>
                           {shows?.filter(show => show.phaseId === phase.id).map((show) => (
@@ -1433,16 +1433,17 @@ export default function AdminPanel() {
           <TabsContent value="phases">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Phase Management</CardTitle>
-                    <p className="text-gray-600">Manage competition phases and progression</p>
-                  </div>
-                  <Button onClick={handleCreatePhase} disabled={!currentEventId}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Phase
-                  </Button>
-                </div>
+                
+                <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <CardTitle>Phase Management</CardTitle>
+              <p className="text-gray-600">Manage competition phases and progression</p>
+            </div>
+            <Button onClick={handleCreatePhase} disabled={!currentEventId}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Phase
+            </Button>
+          </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -1518,7 +1519,7 @@ export default function AdminPanel() {
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Shows for this phase */}
                         <div className="mt-3 p-3 bg-white rounded border">
                           <h5 className="text-sm font-medium text-gray-700 mb-2">Shows in this phase:</h5>
@@ -2042,7 +2043,7 @@ export default function AdminPanel() {
                       onChange={(e) => setCriteriaSearchTerm(e.target.value)}
                     />
                   </div>
-                  
+
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {(() => {
                       const filteredTemplates = allCriteriaTemplates
@@ -2052,7 +2053,7 @@ export default function AdminPanel() {
                           template.showName?.toLowerCase().includes(criteriaSearchTerm.toLowerCase()) ||
                           template.eventName?.toLowerCase().includes(criteriaSearchTerm.toLowerCase())
                         ) || [];
-                      
+
                       // Group by event and show
                       const grouped = filteredTemplates.reduce((acc: any, template: any) => {
                         const key = `${template.eventName} - ${template.showName}`;
@@ -2060,7 +2061,7 @@ export default function AdminPanel() {
                         acc[key].push(template);
                         return acc;
                       }, {});
-                      
+
                       return Object.entries(grouped).map(([groupKey, templates]: [string, any]) => (
                         <div key={groupKey} className="space-y-2">
                           <h5 className="text-sm font-medium text-gray-700 px-2 py-1 bg-gray-100 rounded">
@@ -2106,13 +2107,13 @@ export default function AdminPanel() {
                       ));
                     })()}
                   </div>
-                  
+
                   {(!allCriteriaTemplates || allCriteriaTemplates.length === 0) && (
                     <div className="text-center py-8 text-gray-500">
                       <p>No existing criteria found to use as templates.</p>
                     </div>
                   )}
-                  
+
                   {allCriteriaTemplates && allCriteriaTemplates.length > 0 && 
                    allCriteriaTemplates.filter((template: any) => 
                      template.name.toLowerCase().includes(criteriaSearchTerm.toLowerCase()) ||
@@ -2124,7 +2125,7 @@ export default function AdminPanel() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex space-x-2 mt-6 pt-4 border-t">
                   <Button variant="outline" onClick={() => {
                     setShowCriteriaTemplateModal(false);
