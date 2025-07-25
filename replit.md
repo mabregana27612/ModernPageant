@@ -129,6 +129,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### July 25, 2025 - LAGATA Claveria Event Seeded with Authentic Filipino Data
+- **New Event**: Successfully seeded LAGATA De Claveria pageant with authentic Filipino names and locations
+- **Judges**: Created 5 Filipino judges with realistic specializations (Former Miss Misamis Oriental, Fashion Designer, Dance Choreographer, Public Speaking Expert, Beauty Specialist)
+- **Contestants**: Added 10 contestants from various municipalities in Misamis Oriental with authentic occupations and details
+- **Complete Structure**: Generated 3 phases (Preliminaries, Semi-Finals, Finals), 12 shows, and comprehensive scoring criteria
+- **UI Enhancements**: Enhanced judge dashboard with vibrant color coding - purple for phases, blue for shows, green for criteria, orange for contestants
+- **Results System**: Fixed results page to properly display all phase results with print functionality including judge and admin signatures
+- **Data Quality**: All contestants linked to Finals phase for immediate scoring capability
+
 ### July 25, 2025 - Project Migration from Replit Agent to Standard Replit Environment Completed
 - **Migration**: Successfully migrated pageant management system from Replit Agent to standard Replit environment
 - **Database**: PostgreSQL database created and schema pushed successfully using Drizzle Kit
