@@ -115,7 +115,9 @@ export default function PhaseProgression({ eventId }: PhaseProgressionProps) {
     );
   }
 
-  const isFirstPhase = !eligibleContestants || eligibleContestants.length === 0;
+  // Check if this is truly the first phase by looking at phase order, not contestant eligibility
+  const isFirstPhase = currentPhase && phases && phases.length > 0 && 
+    currentPhase.order === Math.min(...phases.map(p => p.order));
 
   return (
     <div className="space-y-6">
@@ -150,11 +152,20 @@ export default function PhaseProgression({ eventId }: PhaseProgressionProps) {
                 </AlertDescription>
               </Alert>
             )}
+
+            {!isFirstPhase && (!results || results.length === 0) && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  No results available for this phase. Please ensure scoring is complete before advancing contestants.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {!isFirstPhase && results && (
+      {!isFirstPhase && (results || eligibleContestants) && (
         <Card>
           <CardHeader>
             <CardTitle>Select Contestants to Advance</CardTitle>
@@ -191,40 +202,79 @@ export default function PhaseProgression({ eventId }: PhaseProgressionProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {results.map((result, index) => {
-                const contestant = allContestants?.find(c => c.id === result.contestantId);
-                const isSelected = selectedContestants.includes(result.contestantId);
-                
-                return (
-                  <div
-                    key={result.contestantId}
-                    className={`flex items-center justify-between p-3 border rounded-lg ${
-                      isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => handleContestantToggle(result.contestantId)}
-                      />
-                      <div className="flex items-center space-x-2">
-                        <Badge variant={index < 3 ? "default" : "secondary"}>
-                          #{index + 1}
-                        </Badge>
-                        {index < 3 && <Trophy className="h-4 w-4 text-yellow-500" />}
-                      </div>
-                      <div>
-                        <p className="font-medium">
-                          #{contestant?.contestantNumber} {contestant?.user.firstName} {contestant?.user.lastName}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Total Score: {result.totalScore?.toFixed(2) || 'N/A'}
-                        </p>
+              {(results || []).length > 0 ? (
+                results.map((result, index) => {
+                  const contestant = allContestants?.find(c => c.id === result.contestantId);
+                  const isSelected = selectedContestants.includes(result.contestantId);
+                  
+                  return (
+                    <div
+                      key={result.contestantId}
+                      className={`flex items-center justify-between p-3 border rounded-lg ${
+                        isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => handleContestantToggle(result.contestantId)}
+                        />
+                        <div className="flex items-center space-x-2">
+                          <Badge variant={index < 3 ? "default" : "secondary"}>
+                            #{index + 1}
+                          </Badge>
+                          {index < 3 && <Trophy className="h-4 w-4 text-yellow-500" />}
+                        </div>
+                        <div>
+                          <p className="font-medium">
+                            #{contestant?.contestantNumber} {contestant?.user.firstName} {contestant?.user.lastName}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Total Score: {result.totalScore?.toFixed(2) || 'N/A'}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : eligibleContestants && eligibleContestants.length > 0 ? (
+                eligibleContestants.map((contestant, index) => {
+                  const isSelected = selectedContestants.includes(contestant.id);
+                  
+                  return (
+                    <div
+                      key={contestant.id}
+                      className={`flex items-center justify-between p-3 border rounded-lg ${
+                        isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => handleContestantToggle(contestant.id)}
+                        />
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="secondary">
+                            #{index + 1}
+                          </Badge>
+                        </div>
+                        <div>
+                          <p className="font-medium">
+                            #{contestant.contestantNumber} {contestant.user.firstName} {contestant.user.lastName}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Status: Eligible for {currentPhase?.name}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center text-gray-500 py-4">
+                  No contestants available for selection
+                </div>
+              )}
             </div>
 
             {selectedContestants.length > 0 && (
