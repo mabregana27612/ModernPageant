@@ -209,17 +209,6 @@ export class DatabaseStorage implements IStorage {
 
   async createShow(showData: InsertShow): Promise<Show> {
     const [created] = await db.insert(shows).values(showData).returning();
-
-    // Automatically create a phase for this show
-    await db.insert(phases).values({
-      eventId: showData.eventId,
-      showId: created.id,
-      name: created.name,
-      order: created.order,
-      status: 'pending',
-      resetScores: false,
-    });
-
     return created;
   }
 
