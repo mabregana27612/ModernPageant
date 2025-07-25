@@ -1,3 +1,4 @@
+
 import { db } from "./db";
 import { events, contestants, judges, shows, criteria, phases, scores, users, contestantPhases } from "@shared/schema";
 import { sql } from "drizzle-orm";
@@ -151,17 +152,7 @@ async function seedComprehensiveData() {
 
     const createdContestants = await db.insert(contestants).values(contestantData).returning();
 
-    // Create shows (main competition categories)
-    const showsData = [
-      { eventId: activeEvent.id, name: "Interview", description: "Communication skills, intelligence, and personality", weight: "30.00", order: 1 },
-      { eventId: activeEvent.id, name: "Talent", description: "Individual talent performance and stage presence", weight: "25.00", order: 2 },
-      { eventId: activeEvent.id, name: "Evening Gown", description: "Poise, elegance, and grace in formal wear", weight: "25.00", order: 3 },
-      { eventId: activeEvent.id, name: "Swimwear", description: "Confidence, fitness, and stage presence", weight: "20.00", order: 4 }
-    ];
-
-    const createdShows = await db.insert(shows).values(showsData).returning();
-
-    // Create phases 
+    // Create phases FIRST (before shows, since shows reference phases)
     const phaseData = [
       {
         eventId: activeEvent.id,
@@ -191,6 +182,16 @@ async function seedComprehensiveData() {
 
     const createdPhases = await db.insert(phases).values(phaseData).returning();
     const finalsPhase = createdPhases.find(p => p.name === "Finals" && p.status === "active");
+
+    // Create shows (main competition categories) - NOW that phases exist
+    const showsData = [
+      { eventId: activeEvent.id, phaseId: finalsPhase!.id, name: "Interview", description: "Communication skills, intelligence, and personality", weight: "30.00", order: 1 },
+      { eventId: activeEvent.id, phaseId: finalsPhase!.id, name: "Talent", description: "Individual talent performance and stage presence", weight: "25.00", order: 2 },
+      { eventId: activeEvent.id, phaseId: finalsPhase!.id, name: "Evening Gown", description: "Poise, elegance, and grace in formal wear", weight: "25.00", order: 3 },
+      { eventId: activeEvent.id, phaseId: finalsPhase!.id, name: "Swimwear", description: "Confidence, fitness, and stage presence", weight: "20.00", order: 4 }
+    ];
+
+    const createdShows = await db.insert(shows).values(showsData).returning();
 
     // Create criteria for each show
     const criteriaData = [
