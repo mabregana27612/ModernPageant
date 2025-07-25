@@ -222,6 +222,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteShow(id: string): Promise<void> {
+    // First delete all scores for criteria in this show
+    const showCriteria = await db.select({ id: criteria.id }).from(criteria).where(eq(criteria.showId, id));
+    for (const criterion of showCriteria) {
+      await db.delete(scores).where(eq(scores.criteriaId, criterion.id));
+    }
+    // Then delete all criteria for this show
+    await db.delete(criteria).where(eq(criteria.showId, id));
+    // Finally delete the show
     await db.delete(shows).where(eq(shows.id, id));
   }
 
@@ -271,6 +279,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCriteria(id: string): Promise<void> {
+    // First delete all scores that reference this criteria
+    await db.delete(scores).where(eq(scores.criteriaId, id));
+    // Then delete the criteria
     await db.delete(criteria).where(eq(criteria.id, id));
   }
 

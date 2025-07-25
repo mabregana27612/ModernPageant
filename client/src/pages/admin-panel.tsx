@@ -290,6 +290,8 @@ export default function AdminPanel() {
     weight: '',
     maxScore: '10'
   });
+  const [editingCriteria, setEditingCriteria] = useState<any>(null);
+  const [editingShow, setEditingShow] = useState<Show | null>(null);
   const [showPhaseForm, setShowPhaseForm] = useState(false);
   const [editingPhase, setEditingPhase] = useState<Phase | null>(null);
   const [phaseForm, setPhaseForm] = useState({
@@ -634,6 +636,40 @@ export default function AdminPanel() {
       toast({
         title: "Error",
         description: "Failed to delete criteria.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateCriteriaMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      await apiRequest('PATCH', `/api/criteria/${id}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Criteria updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/shows', selectedShow, 'criteria'] });
+      setEditingCriteria(null);
+      setCriteriaForm({ name: '', description: '', weight: '', maxScore: '10' });
+      setShowCriteriaForm(false);
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update criteria.",
         variant: "destructive",
       });
     },
@@ -1211,6 +1247,8 @@ export default function AdminPanel() {
                                         size="sm"
                                         onClick={() => {
                                           setSelectedShow(show.id);
+                                          setEditingCriteria(null);
+                                          setCriteriaForm({ name: '', description: '', weight: '', maxScore: '10' });
                                           setShowCriteriaForm(true);
                                         }}
                                       >
@@ -1228,13 +1266,31 @@ export default function AdminPanel() {
                                           <Badge variant="outline">{criteria.weight}% weight</Badge>
                                           <Badge variant="secondary">Max: {criteria.maxScore}</Badge>
                                         </div>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => deleteCriteriaMutation.mutate(criteria.id)}
-                                        >
-                                          <Trash2 className="h-4 w-4 text-red-500" />
-                                        </Button>
+                                        <div className="flex items-center space-x-2">
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => {
+                                              setEditingCriteria(criteria);
+                                              setCriteriaForm({
+                                                name: criteria.name,
+                                                description: criteria.description || '',
+                                                weight: criteria.weight,
+                                                maxScore: criteria.maxScore.toString()
+                                              });
+                                              setShowCriteriaForm(true);
+                                            }}
+                                          >
+                                            <Edit className="h-4 w-4 text-blue-500" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => deleteCriteriaMutation.mutate(criteria.id)}
+                                          >
+                                            <Trash2 className="h-4 w-4 text-red-500" />
+                                          </Button>
+                                        </div>
                                       </div>
                                     )) || []}
                                     {(!(criteriaData as any)?.filter?.((c: any) => c.showId === show.id)?.length) && (
@@ -1869,9 +1925,9 @@ export default function AdminPanel() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <Card className="w-full max-w-md">
               <CardHeader>
-                <CardTitle>Add Scoring Criteria</CardTitle>
+                <CardTitle>{editingCriteria ? 'Edit Scoring Criteria' : 'Add Scoring Criteria'}</CardTitle>
                 <p className="text-sm text-gray-600">
-                  Adding criteria to: {shows?.find(s => s.id === selectedShow)?.name}
+                  {editingCriteria ? 'Editing' : 'Adding'} criteria {editingCriteria ? 'for' : 'to'}: {shows?.find(s => s.id === selectedShow)?.name}
                 </p>
               </CardHeader>
               <CardContent>
@@ -1928,14 +1984,23 @@ export default function AdminPanel() {
                           weight: criteriaForm.weight, // Keep as string
                           maxScore: parseInt(criteriaForm.maxScore) || 10
                         };
-                        createCriteriaMutation.mutate(data);
+                        
+                        if (editingCriteria) {
+                          updateCriteriaMutation.mutate({ id: editingCriteria.id, data });
+                        } else {
+                          createCriteriaMutation.mutate(data);
+                        }
                       }}
-                      disabled={createCriteriaMutation.isPending || !criteriaForm.name}
+                      disabled={(editingCriteria ? updateCriteriaMutation.isPending : createCriteriaMutation.isPending) || !criteriaForm.name}
                     >
-                      {createCriteriaMutation.isPending ? 'Creating...' : 'Create Criteria'}
+                      {editingCriteria 
+                        ? (updateCriteriaMutation.isPending ? 'Updating...' : 'Update Criteria')
+                        : (createCriteriaMutation.isPending ? 'Creating...' : 'Create Criteria')
+                      }
                     </Button>
                     <Button variant="outline" onClick={() => {
                       setShowCriteriaForm(false);
+                      setEditingCriteria(null);
                       setCriteriaForm({ name: '', description: '', weight: '', maxScore: '10' });
                     }}>
                       Cancel
@@ -2135,6 +2200,8 @@ export default function AdminPanel() {
                   </Button>
                   <Button onClick={() => {
                     setShowCriteriaTemplateModal(false);
+                    setEditingCriteria(null);
+                    setCriteriaForm({ name: '', description: '', weight: '', maxScore: '10' });
                     setShowCriteriaForm(true);
                   }}>
                     Create New Instead
