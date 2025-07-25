@@ -52,15 +52,26 @@ export default function JudgeDashboard() {
   const currentPhase = activePhase || fallbackPhase;
   const shows = allShows?.filter(show => show.phaseId === currentPhase?.id) || [];
 
-  // Debug logging
-  console.log('Debug Info:', {
+  // Get shows for the current phase - if no shows are linked to current phase, show all shows for the event
+  let currentPhaseShows = shows?.filter(show => show.phaseId === currentPhase?.id) || [];
+
+  // Fallback: if no shows are linked to the current phase, use all shows for the event
+  if (currentPhaseShows.length === 0 && shows && shows.length > 0) {
+    currentPhaseShows = shows;
+  }
+
+  const currentShow = currentPhaseShows[currentShowIndex];
+
+  console.log("Debug Info:", {
     selectedEvent,
     phases: phases?.length,
     activePhase: activePhase?.name,
     fallbackPhase: fallbackPhase?.name,
     currentPhase: currentPhase?.name,
-    allShows: allShows?.length,
-    filteredShows: shows?.length
+    allShows: shows?.length,
+    filteredShows: currentPhaseShows.length,
+    showsLinkedToPhase: shows?.filter(show => show.phaseId === currentPhase?.id).length,
+    usingFallback: currentPhaseShows.length > 0 && shows?.filter(show => show.phaseId === currentPhase?.id).length === 0
   });
 
   // Get eligible contestants for current phase instead of all contestants  
@@ -68,8 +79,6 @@ export default function JudgeDashboard() {
     queryKey: ['/api/phases', currentPhase?.id, 'contestants'],
     enabled: !!currentPhase?.id,
   });
-
-  const currentShow = shows?.[currentShowIndex];
 
   const { data: criteria } = useQuery<any[]>({
     queryKey: ['/api/shows', currentShow?.id, 'criteria'],
@@ -273,7 +282,7 @@ export default function JudgeDashboard() {
             <p className="text-gray-600">{currentEvent.name}</p>
           </div>
         </div>
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Card className="border-yellow-200 bg-yellow-50">
             <CardHeader>
